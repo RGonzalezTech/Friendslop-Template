@@ -11,5 +11,10 @@ config_version=5
 [application]
 
 config/name="FriendslopTemplate"
+run/main_scene="uid://fmkl06mv7d3q"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/gut/plugin.cfg")

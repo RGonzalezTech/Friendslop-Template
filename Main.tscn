@@ -1,0 +1,12 @@
+[gd_scene load_steps=3 format=3 uid="uid://fmkl06mv7d3q"]
+
+[ext_resource type="Script" uid="uid://bcsnlwegxxrk0" path="res://scripts/player.gd" id="1_uu6xs"]
+[ext_resource type="Script" uid="uid://8rdretarcpb8" path="res://scripts/input/game_input_relay.gd" id="2_uu6xs"]
+
+[node name="MainScene" type="Node2D"]
+
+[node name="Player" type="Node2D" parent="."]
+script = ExtResource("1_uu6xs")
+
+[node name="InputRelay" type="Node" parent="Player"]
+script = ExtResource("2_uu6xs")
