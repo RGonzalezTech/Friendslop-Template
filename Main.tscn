@@ -10,3 +10,4 @@ script = ExtResource("1_uu6xs")
 
 [node name="InputRelay" type="Node" parent="Player"]
 script = ExtResource("2_uu6xs")
+device_id = 0

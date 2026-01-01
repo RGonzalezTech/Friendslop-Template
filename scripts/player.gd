@@ -8,3 +8,6 @@ class_name Player
 func _ready() -> void:
     # input_relay.action_detected.connect(_on_action_detected)
     pass
+
+# func _on_action_detected(action: String, event: InputEvent) -> void:
+#     print("PRESSED: %s" % [action])
