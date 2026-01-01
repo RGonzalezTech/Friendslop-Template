@@ -1,0 +1,30 @@
+name: Godot testing
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: croconut/godot-tester@v5.2
+      with:
+        # required
+        version: "4.4"
+        # how long to spend importing assets before tests are run
+        import-time: "45"
+        # how long tests can run in seconds
+        test-timeout: "45"
+        # the directory containing Gut tests
+        test-dir: "res://test"
+        config-file: "res://gutconfig.json" 
+        # designate a custom url to download the godot binary from (e.g. https://download_url.com/godot/example_download.zip)
+        custom-godot-dl-url: "https://downloads.godotengine.org/?version=4.4&flavor=stable&slug=linux.x86_64.zip&platform=linux.64"
+        # designate a custom path to execute the godot binary (e.g. relative_filename.exe)
+        custom-godot-binary-path: "Godot_v4.4-stable_linux.x86_64"
+        # relative path to the xml file to read / write GUT's results from, recommended
+        # for direct-scene users to check this file if you have issues
+        result-output-file: "test_results.xml"
