@@ -1,5 +1,5 @@
-extends InputRelay
-class_name GameInputRelay
+extends ActionRouter
+class_name GameActionRouter
 
 func _init() -> void:
 	actions_to_monitor = [

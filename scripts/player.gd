@@ -3,18 +3,18 @@ class_name Player
 
 ## The player that reads the input
 
-@onready var input_relay : InputRelay = $InputRelay
+@onready var action_router: ActionRouter = $ActionRouter
 
-const MAX_SPEED : float = 300.0
+const MAX_SPEED: float = 300.0
 
 func _ready() -> void:
-    # input_relay.action_detected.connect(_on_action_detected)
+    # action_router.action_detected.connect(_on_action_detected)
     pass
 
 func _physics_process(_delta: float) -> void:
     var move_input := Vector2(
-        input_relay.get_axis("move_left", "move_right"),
-        input_relay.get_axis("move_up", "move_down")
+        action_router.get_axis("move_left", "move_right"),
+        action_router.get_axis("move_up", "move_down")
     )
     # limit_length(1.0) to make sure we normalize _ONLY IF_ the magnitude
     # is greater than 1. Prevents moving faster than max when diagonal movement

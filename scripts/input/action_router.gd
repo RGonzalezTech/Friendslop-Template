@@ -1,5 +1,5 @@
 extends Node
-class_name InputRelay
+class_name ActionRouter
 
 ## This node is responsible for reading inputs and filtering them for a specific Device
 
@@ -46,7 +46,7 @@ static func base_action_from_device_action(device_action: String) -> String:
         return parts[0]
     return device_action
 
-## Sets up device-specific actions in InputMap based on the InputRelay's device_id.
+## Sets up device-specific actions in InputMap based on the ActionRouter's device_id.
 ## For MKB, it copies keyboard/mouse events. For gamepads, it copies joypad events and sets the device ID.
 func setup_device_specific_actions() -> void:
     _device_specific_action_names.clear()
@@ -58,7 +58,7 @@ func _unhandled_input(event: InputEvent) -> void:
         if not event.is_action(action_name, true):
             continue
 
-        var base_action_name = InputRelay.base_action_from_device_action(action_name)
+        var base_action_name = base_action_from_device_action(action_name)
         action_detected.emit(base_action_name, event)
         if is_inside_tree():
             get_viewport().set_input_as_handled()
@@ -66,13 +66,13 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## returns the specific action strength for this device
 func get_strength(action: String) -> float:
-    var target_action = action if device_id == ALL else InputRelay.device_action_name(action, device_id)
+    var target_action = action if device_id == ALL else device_action_name(action, device_id)
     return Input.get_action_strength(target_action)
 
 ## Returns the get-axis for device-specific 
 func get_axis(left_action: String, right_action: String) -> float:
-    var left = left_action if device_id == ALL else InputRelay.device_action_name(left_action, device_id)
-    var right = right_action if device_id == ALL else InputRelay.device_action_name(right_action, device_id)
+    var left = left_action if device_id == ALL else device_action_name(left_action, device_id)
+    var right = right_action if device_id == ALL else device_action_name(right_action, device_id)
 
     return Input.get_axis(left, right)
 
@@ -81,13 +81,13 @@ func _ready() -> void:
 
 func _setup_mkb_actions(new_action_name: String, events_from_base_action: Array) -> void:
     for ev in events_from_base_action:
-        if not InputRelay.is_mkb(ev):
+        if not is_mkb(ev):
             continue
         InputMap.action_add_event(new_action_name, ev)
 
 func _setup_gamepad_actions(new_action_name: String, events_from_base_action: Array) -> void:
     for ev in events_from_base_action:
-        if not InputRelay.is_joypad(ev):
+        if not is_joypad(ev):
             continue
         var new_ev = ev.duplicate()
         new_ev.device = device_id
@@ -96,14 +96,14 @@ func _setup_gamepad_actions(new_action_name: String, events_from_base_action: Ar
 func _clone_and_configure_device_action(base_action_name: String) -> void:
     # Safety Check: Ensure the base action actually exists before trying to clone it
     if not InputMap.has_action(base_action_name):
-        push_warning("InputRelay: Action '%s' not found in InputMap." % base_action_name)
+        push_warning("ActionRouter: Action '%s' not found in InputMap." % base_action_name)
         return
 
     if device_id == ALL:
         _device_specific_action_names.append(base_action_name)
         return
 
-    var new_action_name = InputRelay.device_action_name(base_action_name, device_id)
+    var new_action_name = device_action_name(base_action_name, device_id)
     if not InputMap.has_action(new_action_name):
         InputMap.add_action(new_action_name)
     _device_specific_action_names.append(new_action_name)

@@ -1,9 +1,9 @@
 extends GutTest
 
-var device: InputRelay
+var device: ActionRouter
 
 func before_each():
-    device = InputRelay.new()
+    device = ActionRouter.new()
 
 func after_each():
     device.free()
@@ -12,57 +12,57 @@ func test_is_mkb():
     # Test cases for keyboard events
     var key_event = InputEventKey.new()
     key_event.set_pressed(true)
-    assert_true(InputRelay.is_mkb(key_event), "InputEventKey should be MKB")
+    assert_true(ActionRouter.is_mkb(key_event), "InputEventKey should be MKB")
 
     # Test cases for mouse button events
     var mouse_btn_event = InputEventMouseButton.new()
     mouse_btn_event.set_pressed(true)
-    assert_true(InputRelay.is_mkb(mouse_btn_event), "InputEventMouseButton should be MKB")
+    assert_true(ActionRouter.is_mkb(mouse_btn_event), "InputEventMouseButton should be MKB")
 
     # Test cases for mouse motion events
     var mouse_motion_event = InputEventMouseMotion.new()
-    assert_true(InputRelay.is_mkb(mouse_motion_event), "InputEventMouseMotion should be MKB")
+    assert_true(ActionRouter.is_mkb(mouse_motion_event), "InputEventMouseMotion should be MKB")
 
     # Test cases for non-MKB events (Joypad)
     var joy_btn_event = InputEventJoypadButton.new()
     joy_btn_event.set_pressed(true)
-    assert_false(InputRelay.is_mkb(joy_btn_event), "InputEventJoypadButton should not be MKB")
+    assert_false(ActionRouter.is_mkb(joy_btn_event), "InputEventJoypadButton should not be MKB")
 
     var joy_motion_event = InputEventJoypadMotion.new()
-    assert_false(InputRelay.is_mkb(joy_motion_event), "InputEventJoypadMotion should not be MKB")
+    assert_false(ActionRouter.is_mkb(joy_motion_event), "InputEventJoypadMotion should not be MKB")
 
 func test_is_joypad():
     # Test cases for joypad button events
     var joy_btn_event = InputEventJoypadButton.new()
     joy_btn_event.set_pressed(true)
-    assert_true(InputRelay.is_joypad(joy_btn_event), "InputEventJoypadButton should be Joypad")
+    assert_true(ActionRouter.is_joypad(joy_btn_event), "InputEventJoypadButton should be Joypad")
 
     # Test cases for joypad motion events
     var joy_motion_event = InputEventJoypadMotion.new()
-    assert_true(InputRelay.is_joypad(joy_motion_event), "InputEventJoypadMotion should be Joypad")
+    assert_true(ActionRouter.is_joypad(joy_motion_event), "InputEventJoypadMotion should be Joypad")
 
     # Test cases for non-Joypad events (MKB)
     var key_event = InputEventKey.new()
     key_event.set_pressed(true)
-    assert_false(InputRelay.is_joypad(key_event), "InputEventKey should not be Joypad")
+    assert_false(ActionRouter.is_joypad(key_event), "InputEventKey should not be Joypad")
 
     var mouse_btn_event = InputEventMouseButton.new()
     mouse_btn_event.set_pressed(true)
-    assert_false(InputRelay.is_joypad(mouse_btn_event), "InputEventMouseButton should not be Joypad")
+    assert_false(ActionRouter.is_joypad(mouse_btn_event), "InputEventMouseButton should not be Joypad")
 
     var mouse_motion_event = InputEventMouseMotion.new()
-    assert_false(InputRelay.is_joypad(mouse_motion_event), "InputEventMouseMotion should not be Joypad")
+    assert_false(ActionRouter.is_joypad(mouse_motion_event), "InputEventMouseMotion should not be Joypad")
 
 func test_device_action_name():
-    assert_eq(InputRelay.device_action_name("attack", -1), "attack_device_-1")
-    assert_eq(InputRelay.device_action_name("jump", 0), "jump_device_0")
-    assert_eq(InputRelay.device_action_name("interact", 4), "interact_device_4")
+    assert_eq(ActionRouter.device_action_name("attack", -1), "attack_device_-1")
+    assert_eq(ActionRouter.device_action_name("jump", 0), "jump_device_0")
+    assert_eq(ActionRouter.device_action_name("interact", 4), "interact_device_4")
 
 func test_base_action_from_device_action():
-    assert_eq(InputRelay.base_action_from_device_action("attack_device_-1"), "attack")
-    assert_eq(InputRelay.base_action_from_device_action("jump_device_0"), "jump")
-    assert_eq(InputRelay.base_action_from_device_action("interact_device_4"), "interact")
-    assert_eq(InputRelay.base_action_from_device_action("some_action_without_device_id"), "some_action_without_device_id")
+    assert_eq(ActionRouter.base_action_from_device_action("attack_device_-1"), "attack")
+    assert_eq(ActionRouter.base_action_from_device_action("jump_device_0"), "jump")
+    assert_eq(ActionRouter.base_action_from_device_action("interact_device_4"), "interact")
+    assert_eq(ActionRouter.base_action_from_device_action("some_action_without_device_id"), "some_action_without_device_id")
 
 func test_ready_sets_up_input_map():
     # Setup for MKB
@@ -72,11 +72,11 @@ func test_ready_sets_up_input_map():
     InputMap.add_action(mkb_action_name)
     InputMap.action_add_event(mkb_action_name, mkb_key_event)
 
-    device.device_id = InputRelay.MKB
+    device.device_id = ActionRouter.MKB
     device.actions_to_monitor = [mkb_action_name]
     device._ready() # Simulate _ready() call
 
-    var mkb_device_action_name = InputRelay.device_action_name(mkb_action_name, InputRelay.MKB)
+    var mkb_device_action_name = ActionRouter.device_action_name(mkb_action_name, ActionRouter.MKB)
     assert_true(InputMap.has_action(mkb_device_action_name), "MKB device-specific action should be added")
     assert_eq(device._device_specific_action_names[0], mkb_device_action_name, "MKB device-specific action name should be in _device_specific_action_names")
     var mkb_events = InputMap.action_get_events(mkb_device_action_name)
@@ -95,7 +95,7 @@ func test_ready_sets_up_input_map():
     device.actions_to_monitor = [gamepad_action_name]
     device._ready() # Simulate _ready() call
 
-    var gamepad_device_action_name = InputRelay.device_action_name(gamepad_action_name, 4)
+    var gamepad_device_action_name = ActionRouter.device_action_name(gamepad_action_name, 4)
     assert_true(InputMap.has_action(gamepad_device_action_name), "Gamepad device-specific action should be added")
     assert_true(device._device_specific_action_names.has(gamepad_device_action_name), "Gamepad device-specific action name should be in _device_specific_action_names")
     var gamepad_events = InputMap.action_get_events(gamepad_device_action_name)
@@ -116,7 +116,7 @@ func test_all_mode():
     InputMap.add_action(action_name)
     InputMap.add_action(other_action)
     
-    device.device_id = InputRelay.ALL
+    device.device_id = ActionRouter.ALL
     device.actions_to_monitor = [action_name]
     add_child_autofree(device)
     
@@ -125,7 +125,7 @@ func test_all_mode():
     assert_eq(device._device_specific_action_names[0], action_name)
     
     # 2. Verify NO device-specific action was created in InputMap
-    var device_action = InputRelay.device_action_name(action_name, InputRelay.ALL)
+    var device_action = ActionRouter.device_action_name(action_name, ActionRouter.ALL)
     assert_false(InputMap.has_action(device_action), "Should not create device-specific action in ALL mode")
     
     # 3. Verify _unhandled_input emits correct signal for monitored action
