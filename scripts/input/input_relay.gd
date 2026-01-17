@@ -4,13 +4,16 @@ class_name InputRelay
 ## This node is responsible for reading inputs and filtering them for a specific Device
 
 ## The int that represents mouse and keyboard (all others are gamepads)
-const MKB : int = -1
+const MKB: int = -1
+
+## The int that represents an "all" type of input
+const ALL: int = -2
 
 ## The device ID that this Input relay filters for
-@export var device_id : int = MKB
+@export var device_id: int = ALL
 
 ## The list of action names to clone for this specific device
-@export var actions_to_monitor : Array[String] = []
+@export var actions_to_monitor: Array[String] = []
 
 var _device_specific_action_names: Array[String] = []
 
@@ -51,26 +54,27 @@ func setup_device_specific_actions() -> void:
         _clone_and_configure_device_action(base_action_name)
 
 func _unhandled_input(event: InputEvent) -> void:
-    # Only process events that match this InputRelay's device_id
-    for device_specific_action_name in _device_specific_action_names:
-        if not event.is_action(device_specific_action_name, true):
+    for action_name in _device_specific_action_names:
+        if not event.is_action(action_name, true):
             continue
-        var base_action_name = InputRelay.base_action_from_device_action(device_specific_action_name)
+
+        var base_action_name = InputRelay.base_action_from_device_action(action_name)
         action_detected.emit(base_action_name, event)
-        get_viewport().set_input_as_handled()
+        if is_inside_tree():
+            get_viewport().set_input_as_handled()
         return
 
 ## returns the specific action strength for this device
 func get_strength(action: String) -> float:
-    var device_specific_action_name = InputRelay.device_action_name(action, device_id)
-    return Input.get_action_strength(device_specific_action_name)
+    var target_action = action if device_id == ALL else InputRelay.device_action_name(action, device_id)
+    return Input.get_action_strength(target_action)
 
 ## Returns the get-axis for device-specific 
 func get_axis(left_action: String, right_action: String) -> float:
-    var device_left = InputRelay.device_action_name(left_action, device_id)
-    var device_right = InputRelay.device_action_name(right_action, device_id)
+    var left = left_action if device_id == ALL else InputRelay.device_action_name(left_action, device_id)
+    var right = right_action if device_id == ALL else InputRelay.device_action_name(right_action, device_id)
 
-    return Input.get_axis(device_left, device_right)
+    return Input.get_axis(left, right)
 
 func _ready() -> void:
     setup_device_specific_actions()
@@ -93,6 +97,10 @@ func _clone_and_configure_device_action(base_action_name: String) -> void:
     # Safety Check: Ensure the base action actually exists before trying to clone it
     if not InputMap.has_action(base_action_name):
         push_warning("InputRelay: Action '%s' not found in InputMap." % base_action_name)
+        return
+
+    if device_id == ALL:
+        _device_specific_action_names.append(base_action_name)
         return
 
     var new_action_name = InputRelay.device_action_name(base_action_name, device_id)
