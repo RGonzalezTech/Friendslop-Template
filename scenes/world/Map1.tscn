@@ -1,0 +1,48 @@
+[gd_scene load_steps=4 format=3 uid="uid://c5adlo0kjo7po"]
+
+[ext_resource type="Texture2D" uid="uid://cxa787505l4f8" path="res://icon.svg" id="1_mcel6"]
+
+[sub_resource type="GDScript" id="GDScript_inxd1"]
+resource_name = "OnThisMap"
+script/source = "extends Node2D
+
+func _ready() -> void:
+	if multiplayer.is_server():
+		do_server_stuff()
+	SceneManager.mark_scene_as_loaded(self)
+
+func do_server_stuff() -> void:
+	if not multiplayer.is_server():
+		return
+	
+	LobbyManager.current_lobby.state = Lobby.State.IN_GAME
+	await get_tree().create_timer(5.0).timeout # wait 5 seconds
+	LobbyManager.current_lobby.active_map_path = SceneManager.LOBBY_MENU
+	LobbyManager.current_lobby.state = Lobby.State.POST_GAME
+"
+
+[sub_resource type="GDScript" id="GDScript_mcel6"]
+resource_name = "OnLeaveGame"
+script/source = "extends Button
+
+func _pressed() -> void:
+	LobbyManager.disconnection_reason = \"Left the game\"
+	SceneManager.go_to_main_menu()
+"
+
+[node name="Map1" type="Node2D"]
+script = SubResource("GDScript_inxd1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+position = Vector2(217, 169)
+texture = ExtResource("1_mcel6")
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="Button" type="Button" parent="UI"]
+offset_left = 522.0
+offset_top = 231.0
+offset_right = 628.0
+offset_bottom = 262.0
+text = "LEAVE GAME"
+script = SubResource("GDScript_mcel6")

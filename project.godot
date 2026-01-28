@@ -11,9 +11,15 @@ config_version=5
 [application]
 
 config/name="FriendslopTemplate"
-run/main_scene="uid://fmkl06mv7d3q"
+run/main_scene="uid://kfp8o5wcwdn0"
 config/features=PackedStringArray("4.4", "Forward Plus")
 config/icon="res://icon.svg"
+
+[autoload]
+
+PeerManager="*res://scripts/multiplayer/network/peer_manager.gd"
+LobbyManager="*res://scripts/multiplayer/lobby/lobby_manager.gd"
+SceneManager="*res://scripts/core/scene_manager.gd"
 
 [editor_plugins]
 

@@ -1,0 +1,18 @@
+[gd_scene load_steps=2 format=3 uid="uid://bv8o5wcwdn0k"]
+
+[ext_resource type="Script" uid="uid://cwvgvpgpsf1cb" path="res://scripts/ui/lobby_player_item.gd" id="1_x8rv1"]
+
+[node name="LobbyPlayerItem" type="HBoxContainer"]
+offset_right = 40.0
+offset_bottom = 40.0
+theme_override_constants/separation = 20
+script = ExtResource("1_x8rv1")
+
+[node name="NameLabel" type="Label" parent="."]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Player Name"
+
+[node name="StatusLabel" type="Label" parent="."]
+layout_mode = 2
+text = "[Not Ready]"
