@@ -77,7 +77,7 @@ func test_scene_transition_on_map_change():
 	var test_path = "res://scenes/maps/TestMap.tscn"
 	
 	# Trigger map change
-	_lobby_manager.current_lobby.active_map_path = test_path
+	_lobby_manager.current_lobby.active_scene_path = test_path
 	
 	# Assert that SceneManager.start_transition_to was called with the correct path
 	assert_called(_mock_scene_manager.start_transition_to.bind(test_path))

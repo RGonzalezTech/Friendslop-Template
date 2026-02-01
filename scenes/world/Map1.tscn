@@ -17,7 +17,7 @@ func do_server_stuff() -> void:
 	
 	LobbyManager.current_lobby.state = Lobby.State.IN_GAME
 	await get_tree().create_timer(5.0).timeout # wait 5 seconds
-	LobbyManager.current_lobby.active_map_path = SceneManager.LOBBY_MENU
+	LobbyManager.current_lobby.active_scene_path = SceneManager.LOBBY_MENU
 	LobbyManager.current_lobby.state = Lobby.State.POST_GAME
 "
 

@@ -50,7 +50,7 @@ func _ready() -> void:
 func _setup_lobby_node() -> void:
 	current_lobby = Lobby.new()
 	current_lobby.name = "CurrentLobby"
-	current_lobby.map_changed.connect(_on_map_changed)
+	current_lobby.scene_changed.connect(_on_scene_changed)
 	add_child(current_lobby)
 
 func _setup_spawner() -> void:
@@ -87,7 +87,7 @@ func reset_lobby() -> void:
 		child.queue_free()
 	
 	current_lobby.host_id = 1
-	current_lobby.active_map_path = ""
+	current_lobby.active_scene_path = ""
 	current_lobby.state = Lobby.State.NOT_CONNECTED
 
 ## Initializes the lobby session for the host.
@@ -98,7 +98,7 @@ func initialize_lobby_as_host() -> void:
 	reset_lobby()
 
 	current_lobby.state = Lobby.State.SERVER_LOADING
-	current_lobby.active_map_path = scene_manager.LOBBY_MENU
+	current_lobby.active_scene_path = scene_manager.LOBBY_MENU
 	current_lobby.host_id = multiplayer.get_unique_id()
 	_add_player(current_lobby.host_id)
 
@@ -167,8 +167,8 @@ func _on_scene_load_failed(reason: String) -> void:
 	disconnection_reason = reason
 	scene_manager.go_to_main_menu()
 
-func _on_map_changed() -> void:
-	scene_manager.start_transition_to(current_lobby.active_map_path)
+func _on_scene_changed() -> void:
+	scene_manager.start_transition_to(current_lobby.active_scene_path)
 
 #endregion
 

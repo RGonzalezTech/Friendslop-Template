@@ -73,7 +73,7 @@ func _on_start_btn_pressed() -> void:
 	
 	# Load the game map (SceneManager handles the actual loading)
 	LobbyManager.current_lobby.state = Lobby.State.SERVER_LOADING
-	LobbyManager.current_lobby.active_map_path = "res://scenes/world/Map1.tscn"
+	LobbyManager.current_lobby.active_scene_path = "res://scenes/world/Map1.tscn"
 
 func _on_leave_btn_pressed() -> void:
 	SceneManager.go_to_main_menu()

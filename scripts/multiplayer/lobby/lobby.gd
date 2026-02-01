@@ -15,7 +15,7 @@ enum State {
 ## When the state of the lobby changes.
 signal state_changed
 ## When the active map of the lobby changes.
-signal map_changed
+signal scene_changed
 
 ## The current state of the lobby. Triggers [state_changed].
 @export var state: State = State.NOT_CONNECTED:
@@ -27,14 +27,14 @@ signal map_changed
 @export var max_players: int = 4
 @export var host_id: int = 1
 
-## The current active map path. Triggers [map_changed].
+## The current active scene path. Triggers [scene_changed].
 ## The [SceneManager] subscribes to this property to transition
-## to the active map when it changes.
-@export var active_map_path: String = "":
+## to the active scene when it changes.
+@export var active_scene_path: String = "":
 	set(value):
-		if active_map_path == value: return
-		active_map_path = value
-		map_changed.emit()
+		if active_scene_path == value: return
+		active_scene_path = value
+		scene_changed.emit()
 
 var _synchronizer: MultiplayerSynchronizer
 
@@ -49,7 +49,7 @@ func _setup_synchronizer() -> void:
 	var config := SceneReplicationConfig.new()
 	
 	# Properties that should be synced from the server to others
-	config.add_property(NodePath(":active_map_path"))
+	config.add_property(NodePath(":active_scene_path"))
 	config.add_property(NodePath(":state"))
 	config.add_property(NodePath(":max_players"))
 	config.add_property(NodePath(":host_id"))

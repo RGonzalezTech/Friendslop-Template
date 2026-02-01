@@ -43,7 +43,7 @@ classDiagram
         +State state
         +int max_players
         +int host_id
-        +String active_map_path
+        +String active_scene_path
     }
     class LobbyPlayer {
         +int peer_id
@@ -144,7 +144,7 @@ sequenceDiagram
 
 ### Lobby
 A synchronized node representing the overall session state.
-- **Synchronized Properties**: `active_map_path`, `state`, `max_players`, `host_id`.
+- **Synchronized Properties**: `active_scene_path`, `state`, `max_players`, `host_id`.
 - **States**: `NOT_CONNECTED`, `SERVER_LOADING`, `LOBBY`, `IN_GAME`, `POST_GAME`.
 
 ### LobbyPlayer
