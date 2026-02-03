@@ -11,21 +11,25 @@ const NAME_CHANGE_POPUP_SCENE = preload("res://scenes/ui/NameChangePopup.tscn")
 @onready var status_label = %StatusLabel
 @onready var lobby_state_label = %LobbyStateLabel
 
-
 func _ready() -> void:
 	LobbyManager.player_joined.connect(func(_id: int): _update_lobby_ui.call_deferred())
 	LobbyManager.player_left.connect(func(_id: int): _update_lobby_ui.call_deferred())
 	LobbyManager.current_lobby.state_changed.connect(func(): _update_lobby_ui.call_deferred())
 
-	LobbyManager.current_lobby.state = Lobby.State.LOBBY
-	_update_lobby_ui()
+	# Apply lobby state as the host.
+	if multiplayer.is_server():
+		LobbyManager.current_lobby.state = Lobby.State.LOBBY
+		var all_players = LobbyManager.get_all_players()
+		for player in all_players:
+			player.is_ready = false
 	
-	# Only host can start
-	start_button.visible = multiplayer.is_server()
-
+	_update_lobby_ui()
 	SceneManager.mark_scene_as_loaded(self)
 
 func _update_lobby_ui() -> void:
+	# Only host can start
+	start_button.visible = multiplayer.is_server()
+
 	# 1. Clear existing items
 	for child in player_list.get_children():
 		child.queue_free()

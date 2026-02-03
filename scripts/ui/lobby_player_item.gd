@@ -4,6 +4,7 @@ extends HBoxContainer
 ## Automatically updates its display when the associated [LobbyPlayer] node changes.
 
 @onready var name_label: Label = $NameLabel
+@onready var ready_label: Label = $ReadyLabel
 @onready var status_label: Label = $StatusLabel
 
 var _player_node: LobbyPlayer
@@ -25,13 +26,19 @@ func refresh() -> void:
 	if not _player_node: return
 	
 	# Needs the labels
-	if (not name_label or not status_label):
+	if (not name_label or not ready_label or not status_label):
 		return
 	
 	name_label.text = _player_node.player_name
-	status_label.text = "[Ready]" if _player_node.is_ready else "[Not Ready]"
 	
+	# Update Ready Label
+	ready_label.text = "[Ready]" if _player_node.is_ready else "[Not Ready]"
 	if _player_node.is_ready:
-		status_label.modulate = Color.GREEN
+		ready_label.modulate = Color.GREEN
 	else:
-		status_label.modulate = Color.GRAY
+		ready_label.modulate = Color.GRAY
+		
+	# Update Status Label
+	var status_name = LobbyPlayer.Status.keys()[_player_node.status]
+	status_label.text = "[%s]" % status_name.capitalize()
+	status_label.modulate = Color.CYAN # Use a distinct color for technical status

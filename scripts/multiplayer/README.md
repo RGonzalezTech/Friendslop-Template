@@ -140,6 +140,20 @@ sequenceDiagram
 
 ---
 
+## State Synchronization & RPCs
+
+The template uses a **Server-Authoritative** model for player state. 
+
+### Ready Status & Name Updates
+Clients do not modify their own `is_ready` or `player_name` variables directly. Instead, they request updates via RPC to the server.
+
+1. **Client** calls `LobbyManager.toggle_ready()` or `LobbyManager.update_player_name()`.
+2. **LobbyManager** sends a reliable RPC (`rpc_id(1)`) to the server-side instance of the player's `LobbyPlayer` node.
+3. **Server** validates the request (checks if the sender matches the `peer_id`) and updates the variable.
+4. **MultiplayerSynchronizer** (managed by the server) automatically replicates the change to all other clients.
+
+---
+
 ## Data Structures
 
 ### Lobby
@@ -148,9 +162,8 @@ A synchronized node representing the overall session state.
 - **States**: `NOT_CONNECTED`, `SERVER_LOADING`, `LOBBY`, `IN_GAME`, `POST_GAME`.
 
 ### LobbyPlayer
-Represents a connected user. It uses TWO `MultiplayerSynchronizer` nodes for granular authority control:
-- **PlayerSynchronizer**: Owned by the player. Syncs `player_name` and `is_ready`.
-- **ServerSynchronizer**: Owned by the server. Syncs `status`.
+Represents a connected user. It uses a `ServerSynchronizer` node for authoritative control:
+- **ServerSynchronizer**: Owned by the Server (ID 1). Replicates `player_name`, `is_ready`, and `status` to all peers.
 
 ---
 

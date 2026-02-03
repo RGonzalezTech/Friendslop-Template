@@ -25,7 +25,7 @@ graph TD
 
 ### 🌐 Multiplayer ([scripts/multiplayer](./scripts/multiplayer/))
 - **PeerManager**: Abstract network interface support for multiple backends like **ENet** (IP-based) and **Steam**.
-- **LobbyManager**: Manages the lifecycle of a game session, including player synchronization, lobby states, and map selection.
+- **LobbyManager**: Manages the lifecycle of a game session, including player synchronization, lobby states, and scene selection.
 - **LobbyPlayer**: Synchronized node representing connected users, with built-in authority control for names and status.
 
 ### ⌨️ Input Routing ([scripts/input](./scripts/input/))

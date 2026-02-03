@@ -21,6 +21,9 @@ signal player_joined(peer_id: int)
 ## Emitted when a player leaves the lobby.
 signal player_left(peer_id: int)
 
+## Emitted when a player's status changes.
+signal player_status_update(peer_id: int, status: LobbyPlayer.Status)
+
 var current_lobby: Lobby
 var _lobby_player_spawner: MultiplayerSpawner
 var _lobby_players_container: Node
@@ -44,6 +47,7 @@ func _ready() -> void:
 	multiplayer.peer_connected.connect(_on_peer_connected)
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
 	scene_manager.load_failed.connect(_on_scene_load_failed)
+	scene_manager.is_loading_update.connect(_on_scene_loading_update)
 	
 	reset_lobby()
 
@@ -75,6 +79,7 @@ func _spawn_player(data: int) -> Node:
 	var new_player: LobbyPlayer = LobbyPlayer.new()
 	new_player.peer_id = data
 	new_player.player_name = "Player %d" % data
+	new_player.status_changed.connect(_on_player_status_changed.bind(new_player.peer_id))
 	return new_player
 
 #endregion
@@ -128,17 +133,23 @@ func get_all_players() -> Array[LobbyPlayer]:
 			list.append(child)
 	return list
 
-## Toggles the ready state of the local player.
+## Requests a ready state update. Server will validate and sync via RPC.
 func toggle_ready() -> void:
 	var player_node = get_local_player()
 	if player_node:
-		player_node.is_ready = !player_node.is_ready
+		player_node.toggle_ready.rpc_id(1)
 
 ## Requests a name update. Server will validate and sync via RPC.
 func update_player_name(new_name: String) -> void:
 	var player_node = get_local_player()
 	if player_node:
-		player_node.player_name = new_name
+		player_node.update_player_name.rpc_id(1, new_name)
+
+## Requests a status update. Server will validate and sync via RPC.
+func update_player_status(new_status: LobbyPlayer.Status) -> void:
+	var player_node = get_local_player()
+	if player_node:
+		player_node.set_status.rpc_id(1, new_status)
 
 #endregion
 
@@ -170,6 +181,15 @@ func _on_scene_load_failed(reason: String) -> void:
 func _on_scene_changed() -> void:
 	scene_manager.start_transition_to(current_lobby.active_scene_path)
 
+## Local reference to the player loading status for convenience.
+const LOADING = LobbyPlayer.Status.SCENE_LOADING
+## Local reference to the player ready status for convenience.
+const SYNCED = LobbyPlayer.Status.SYNCED
+
+# When the scene manager reports its loading status, we can update the local player's status.
+func _on_scene_loading_update(is_loading: bool) -> void:
+	update_player_status(LOADING if is_loading else SYNCED)
+
 #endregion
 
 #region Player Signals
@@ -188,4 +208,6 @@ func _on_player_removed(node: Node) -> void:
 		
 	player_left.emit(player_node.peer_id)
 
+func _on_player_status_changed(status: LobbyPlayer.Status, peer_id: int) -> void:
+	player_status_update.emit(peer_id, status)
 #endregion
