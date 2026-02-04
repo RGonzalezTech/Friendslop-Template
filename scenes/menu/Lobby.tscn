@@ -1,8 +1,12 @@
-[gd_scene load_steps=2 format=3 uid="uid://c8v8o5wcwdn0"]
+[gd_scene load_steps=3 format=3 uid="uid://c8v8o5wcwdn0"]
 
+[ext_resource type="Script" uid="uid://du2b5x3tr66kf" path="res://scripts/core/network_level_root.gd" id="1_veaaa"]
 [ext_resource type="Script" uid="uid://bgp7clgn16cxg" path="res://scripts/menu/lobby_menu.gd" id="1_x0y8v"]
 
-[node name="Lobby" type="Control"]
+[node name="LobbyRoot" type="Node"]
+script = ExtResource("1_veaaa")
+
+[node name="Lobby" type="Control" parent="."]
 layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
@@ -11,7 +15,7 @@ grow_horizontal = 2
 grow_vertical = 2
 script = ExtResource("1_x0y8v")
 
-[node name="BG" type="ColorRect" parent="."]
+[node name="BG" type="ColorRect" parent="Lobby"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -20,7 +24,7 @@ grow_horizontal = 2
 grow_vertical = 2
 color = Color(0.180392, 0.180392, 0.180392, 1)
 
-[node name="MarginContainer" type="MarginContainer" parent="."]
+[node name="MarginContainer" type="MarginContainer" parent="Lobby"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -32,68 +36,88 @@ theme_override_constants/margin_top = 40
 theme_override_constants/margin_right = 40
 theme_override_constants/margin_bottom = 40
 
-[node name="VBoxContainer" type="VBoxContainer" parent="MarginContainer"]
+[node name="VBoxContainer" type="VBoxContainer" parent="Lobby/MarginContainer"]
 layout_mode = 2
 theme_override_constants/separation = 20
 
-[node name="Title" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="Title" type="Label" parent="Lobby/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "LOBBY"
 horizontal_alignment = 1
 
-[node name="StatusLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="StatusLabel" type="Label" parent="Lobby/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Connecting..."
 horizontal_alignment = 1
 
-[node name="LobbyStateLabel" type="Label" parent="MarginContainer/VBoxContainer"]
+[node name="LobbyStateLabel" type="Label" parent="Lobby/MarginContainer/VBoxContainer"]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
 text = "State: Lobby"
 horizontal_alignment = 1
 
-[node name="PlayerListScroll" type="ScrollContainer" parent="MarginContainer/VBoxContainer"]
+[node name="LobbyMapLabel" type="Label" parent="Lobby/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+text = "SELECTED MAP: --UPDATE--"
+horizontal_alignment = 1
+
+[node name="LobbyMapSelect" type="OptionButton" parent="Lobby/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+selected = 0
+item_count = 3
+popup/item_0/text = "NONE"
+popup/item_0/id = 0
+popup/item_1/text = "2D World"
+popup/item_1/id = 1
+popup/item_2/text = "3D World"
+popup/item_2/id = 2
+
+[node name="PlayerListScroll" type="ScrollContainer" parent="Lobby/MarginContainer/VBoxContainer"]
 layout_mode = 2
 size_flags_vertical = 3
 
-[node name="PlayerList" type="VBoxContainer" parent="MarginContainer/VBoxContainer/PlayerListScroll"]
+[node name="PlayerList" type="VBoxContainer" parent="Lobby/MarginContainer/VBoxContainer/PlayerListScroll"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="HBoxContainer" type="HBoxContainer" parent="MarginContainer/VBoxContainer"]
+[node name="HBoxContainer" type="HBoxContainer" parent="Lobby/MarginContainer/VBoxContainer"]
 layout_mode = 2
 theme_override_constants/separation = 20
 alignment = 1
 
-[node name="ChangeNameBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="ChangeNameBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Change Name"
 
-[node name="ReadyBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="ReadyBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Ready"
 
-[node name="StartBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="StartBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Start Game"
 
-[node name="LeaveBtn" type="Button" parent="MarginContainer/VBoxContainer/HBoxContainer"]
+[node name="LeaveBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(150, 50)
 layout_mode = 2
 text = "Leave"
 
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/ChangeNameBtn" to="." method="_on_change_name_btn_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/ReadyBtn" to="." method="_on_ready_btn_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/StartBtn" to="." method="_on_start_btn_pressed"]
-[connection signal="pressed" from="MarginContainer/VBoxContainer/HBoxContainer/LeaveBtn" to="." method="_on_leave_btn_pressed"]
+[connection signal="pressed" from="Lobby/MarginContainer/VBoxContainer/HBoxContainer/ChangeNameBtn" to="Lobby" method="_on_change_name_btn_pressed"]
+[connection signal="pressed" from="Lobby/MarginContainer/VBoxContainer/HBoxContainer/ReadyBtn" to="Lobby" method="_on_ready_btn_pressed"]
+[connection signal="pressed" from="Lobby/MarginContainer/VBoxContainer/HBoxContainer/StartBtn" to="Lobby" method="_on_start_btn_pressed"]
+[connection signal="pressed" from="Lobby/MarginContainer/VBoxContainer/HBoxContainer/LeaveBtn" to="Lobby" method="_on_leave_btn_pressed"]

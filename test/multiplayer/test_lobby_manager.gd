@@ -82,30 +82,6 @@ func test_scene_transition_on_map_change():
 	# Assert that SceneManager.start_transition_to was called with the correct path
 	assert_called(_mock_scene_manager.start_transition_to.bind(test_path))
 
-func test_player_state_api_toggles_ready_and_updates_name():
-	# Setup server environment
-	_mock_peer = ENetMultiplayerPeer.new()
-	_mock_peer.create_server(8911)
-	multiplayer.multiplayer_peer = _mock_peer
-	
-	_lobby_manager.initialize_lobby_as_host()
-	var local_player = _lobby_manager.get_local_player()
-	
-	assert_not_null(local_player, "Local player should exist after host init")
-	assert_eq(local_player.peer_id, multiplayer.get_unique_id(), "Peer ID should match local machine")
-	
-	# Test toggle_ready
-	var initial_ready = local_player.is_ready
-	_lobby_manager.toggle_ready()
-	assert_eq(local_player.is_ready, !initial_ready, "Ready state should be toggled")
-	_lobby_manager.toggle_ready()
-	assert_eq(local_player.is_ready, initial_ready, "Ready state should be toggled back")
-	
-	# Test update_player_name
-	var new_name = "NewPlayerName"
-	_lobby_manager.update_player_name(new_name)
-	assert_eq(local_player.player_name, new_name, "Player name should be updated")
-
 func test_internal_signals_emit_player_joined_and_left():
 	watch_signals(_lobby_manager)
 	

@@ -31,14 +31,16 @@ func refresh() -> void:
 	
 	name_label.text = _player_node.player_name
 	
-	# Update Ready Label
-	ready_label.text = "[Ready]" if _player_node.is_ready else "[Not Ready]"
-	if _player_node.is_ready:
-		ready_label.modulate = Color.GREEN
-	else:
-		ready_label.modulate = Color.GRAY
-		
 	# Update Status Label
 	var status_name = LobbyPlayer.Status.keys()[_player_node.status]
 	status_label.text = "[%s]" % status_name.capitalize()
 	status_label.modulate = Color.CYAN # Use a distinct color for technical status
+
+func set_ready_status(is_ready: bool) -> void:
+	if not ready_label: return
+	
+	ready_label.text = "[Ready]" if is_ready else "[Not Ready]"
+	if is_ready:
+		ready_label.modulate = Color.GREEN
+	else:
+		ready_label.modulate = Color.GRAY

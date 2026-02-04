@@ -32,13 +32,6 @@ signal status_changed(status: Status)
 		player_name = value
 		info_changed.emit()
 
-## Whether the player is ready to start the game.
-@export var is_ready: bool = false:
-	set(value):
-		if is_ready == value: return
-		is_ready = value
-		info_changed.emit()
-
 ## The status of the player in the lobby.
 @export var status: Status = Status.CONNECTING:
 	set(value):
@@ -51,22 +44,6 @@ var _server_sync: MultiplayerSynchronizer
 
 func _init() -> void:
 	_setup_synchronizers()
-
-## Server-Side: Toggles the ready status of the player.
-## Expects remote sender == peer_id.
-@rpc("any_peer", "call_local", "reliable")
-func toggle_ready() -> void:
-	if not multiplayer.is_server():
-		# Only server can change a player's ready status
-		push_warning("Only server can change a player's ready status")
-		return
-
-	# A player can only update their own ready status
-	if multiplayer.get_remote_sender_id() != peer_id:
-		push_warning("Only the player can update their own ready status")
-		return
-
-	is_ready = !is_ready
 
 ## Updates the name of the player.
 ## Expects remote sender == peer_id.
@@ -105,7 +82,6 @@ func _setup_synchronizers() -> void:
 	
 	var server_config := SceneReplicationConfig.new()
 	server_config.add_property(NodePath(":status"))
-	server_config.add_property(NodePath(":is_ready"))
 	server_config.add_property(NodePath(":player_name"))
 	
 	_server_sync.replication_config = server_config
