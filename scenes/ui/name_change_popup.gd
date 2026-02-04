@@ -9,6 +9,14 @@ signal name_submitted(new_name: String)
 @onready var confirm_btn: Button = %ConfirmBtn
 @onready var cancel_btn: Button = %CancelBtn
 
+func _enter_tree() -> void:
+	var local_player = LobbyManager.get_local_player()
+	assert(local_player, "Name change popup expects a local player to be present.")
+
+	# Auto-Submit & Auto-Close
+	self.name_submitted.connect(LobbyManager.update_player_name)
+	self.popup_hide.connect(self.queue_free)
+
 func _ready() -> void:
 	# Connect signals for confirmation and cancellation
 	confirm_btn.pressed.connect(_on_confirm_pressed)

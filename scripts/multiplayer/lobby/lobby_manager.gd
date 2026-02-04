@@ -121,8 +121,33 @@ func _add_player(peer_id: int) -> void:
 func get_player(peer_id: int) -> LobbyPlayer:
 	return _lobby_players_container.get_node_or_null(str(peer_id)) as LobbyPlayer
 
+## Returns true if the player is ready for gameplay.
+## This is determined by the player's status.
+func is_player_ready_for_gameplay(peer_id: int) -> bool:
+	var this_player = get_player(peer_id)
+	if not this_player:
+		return false
+
+	const SYNCED = LobbyPlayer.Status.SYNCED
+	const IN_GAME = LobbyPlayer.Status.IN_GAME
+	match this_player.status:
+		SYNCED, IN_GAME:
+			# Either status is fine for gameplay.
+			return true
+		_:
+			# Any other status is not ready for gameplay.
+			return false
+
 ## Returns the local player node.
 func get_local_player() -> LobbyPlayer:
+	var has_peer = multiplayer.multiplayer_peer
+	if not has_peer:
+		return null
+	
+	var conn_status = has_peer.get_connection_status()
+	if conn_status != MultiplayerPeer.ConnectionStatus.CONNECTION_CONNECTED:
+		return null
+
 	return get_player(multiplayer.get_unique_id())
 
 ## Returns an array of all active lobby player nodes.
@@ -132,12 +157,6 @@ func get_all_players() -> Array[LobbyPlayer]:
 		if child is LobbyPlayer:
 			list.append(child)
 	return list
-
-## Requests a ready state update. Server will validate and sync via RPC.
-func toggle_ready() -> void:
-	var player_node = get_local_player()
-	if player_node:
-		player_node.toggle_ready.rpc_id(1)
 
 ## Requests a name update. Server will validate and sync via RPC.
 func update_player_name(new_name: String) -> void:
@@ -181,13 +200,11 @@ func _on_scene_load_failed(reason: String) -> void:
 func _on_scene_changed() -> void:
 	scene_manager.start_transition_to(current_lobby.active_scene_path)
 
-## Local reference to the player loading status for convenience.
-const LOADING = LobbyPlayer.Status.SCENE_LOADING
-## Local reference to the player ready status for convenience.
-const SYNCED = LobbyPlayer.Status.SYNCED
 
 # When the scene manager reports its loading status, we can update the local player's status.
 func _on_scene_loading_update(is_loading: bool) -> void:
+	const LOADING = LobbyPlayer.Status.SCENE_LOADING
+	const SYNCED = LobbyPlayer.Status.SYNCED
 	update_player_status(LOADING if is_loading else SYNCED)
 
 #endregion

@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://c5v8o5wcwdn0p"]
 
-[ext_resource type="Script" path="res://scripts/ui/name_change_popup.gd" id="1_popup"]
+[ext_resource type="Script" uid="uid://6ji7ye32kq4m" path="res://scenes/ui/name_change_popup.gd" id="1_popup"]
 
 [node name="NameChangePopup" type="PopupPanel"]
 initial_position = 1

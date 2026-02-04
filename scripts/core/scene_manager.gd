@@ -14,7 +14,7 @@ extends Timer
 ## The default `MainMenu` scene.
 const MAIN_MENU: String = "res://scenes/menu/MainMenu.tscn"
 ## The default `Lobby` scene.
-const LOBBY_MENU: String = "res://scenes/menu/Lobby.tscn"
+const LOBBY_MENU: String = "res://scenes/menu/lobby/Lobby.tscn"
 
 ## Emitted when the scene loader is active or not.
 signal is_loading_update(is_loading: bool)

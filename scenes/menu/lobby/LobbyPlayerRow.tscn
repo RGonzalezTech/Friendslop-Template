@@ -1,6 +1,6 @@
 [gd_scene load_steps=2 format=3 uid="uid://bv8o5wcwdn0k"]
 
-[ext_resource type="Script" uid="uid://cwvgvpgpsf1cb" path="res://scripts/ui/lobby_player_item.gd" id="1_x8rv1"]
+[ext_resource type="Script" uid="uid://cwvgvpgpsf1cb" path="res://scenes/menu/lobby/lobby_player_row.gd" id="1_x8rv1"]
 
 [node name="LobbyPlayerItem" type="HBoxContainer"]
 offset_right = 40.0
