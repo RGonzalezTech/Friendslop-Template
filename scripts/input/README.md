@@ -8,7 +8,7 @@ The `ActionRouter` ([action_router.gd](./action_router.gd)) is a [Node](https://
 
 ### Usage
 
-1. **Inherit**: Create a class (e.g., [GameActionRouter](./game_action_router.gd)) and list actions to monitor in `_init`.
+1. **Inherit**: Create a class (e.g., [GameActionRouter2D](./game_action_router_2d.gd)) and list actions to monitor in `_init`.
 2. **Device ID**: Set `device_id` (`-1` for MKB, `0+` for Joypads) to filter inputs.
 3. **Polling**: Use `get_axis()` or `get_strength()` instead of the global `Input` class.
 4. **Signals**: Connect to `action_detected(action_name: String, event: InputEvent)` for event-based input.
