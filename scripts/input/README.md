@@ -1,34 +1,48 @@
-# Input Routing
+# Input System 🎮
 
-The input system in this template is designed to handle local multiplayer efficiently by isolating input actions per device.
+Handling input directly inside your Player script often leads to spaghetti code. This template uses an **Action Router** pattern to keep things clean and multiplayer-ready.
 
-## ActionRouter
+## The Concept
 
-The `ActionRouter` ([action_router.gd](./action_router.gd)) is a [Node](https://docs.godotengine.org/en/stable/classes/class_node.html) that clones [InputMap](https://docs.godotengine.org/en/stable/classes/class_inputmap.html) actions to isolate inputs per device. This allows multiple players (Keyboard/Mouse or Gamepads) to use the same action names without interference.
+Instead of checking `Input.is_action_pressed("jump")` inside your Player implementation, we separate the "Input" from the "Action".
 
-### Usage
+- **The Router (`ActionRouter`)**: Detects raw inputs (Keyboard, Gamepad, etc.) and maps them to device-agnostic actions.
+- **Device Isolation**: The router can automatically clone and prefix actions (e.g., `move_left_device_0`) to allow multiple controllers to work without conflict.
+- **The Actor**: Your Player script queries the Router or connects to its signals to react to gameplay intents.
 
-1. **Inherit**: Create a class (e.g., [GameActionRouter2D](./game_action_router_2d.gd)) and list actions to monitor in `_init`.
-2. **Device ID**: Set `device_id` (`-1` for MKB, `0+` for Joypads) to filter inputs.
-3. **Polling**: Use `get_axis()` or `get_strength()` instead of the global `Input` class.
-4. **Signals**: Connect to `action_detected(action_name: String, event: InputEvent)` for event-based input.
+### Signal Flow
 
-### Example: Player Input
+```mermaid
+sequenceDiagram
+    participant Godot as Godot Engine
+    participant Router as ActionRouter
+    participant Player as Player / Actor
 
-```gdscript
-# scripts/player.gd
-@onready var action_router: ActionRouter = $ActionRouter
+    Note over Godot, Router: Input occurs (e.g. Keyboard, Gamepad)
 
-const MAX_SPEED = 10.0
-
-func _physics_process(_delta: float) -> void:
-    var move_input := Vector2(
-        action_router.get_axis("move_left", "move_right"),
-        action_router.get_axis("move_up", "move_down")
-    )
-    velocity = move_input.limit_length(1.0) * MAX_SPEED
-    move_and_slide()
+    Godot->>Router: _unhandled_input(event)
+    
+    Note right of Router: Filters for monitored actions<br/>and matching device_id
+    
+    alt Action matches device
+        Router->>Godot: set_input_as_handled()
+        Router-->>Player: signal action_detected(base_name, event)
+        Player->>Player: perform_game_logic(base_name)
+    end
+    
+    Note over Player, Router: Polling Example (GameActionRouter2D)
+    Player->>Router: get_look_direction()
+    Router-->>Player: Vector2(x, y)
 ```
 
-- [InputEvent](https://docs.godotengine.org/en/stable/classes/class_inputevent.html) documentation.
-- [CharacterBody2D](https://docs.godotengine.org/en/stable/classes/class_characterbody2d.html) documentation.
+## Why do this?
+
+- **Multiplayer Ready**: Easily assign `device_id` to different players. The template handles the `InputMap` cloning for you.
+- **Input Neutrality**: Swap between Human, AI, or any other inputs by swapping the `ActionRouter` node.
+- **Testing**: Mock inputs easily by calling `action_detected.emit()` from your test scripts.
+- **Hybrid Look Logic**: `GameActionRouter2D` automatically switches between Mouse and Gamepad look logic depending on the last used device.
+
+## Files
+
+- `action_router.gd`: The base class. Handles the heavy lifting of `InputMap` cloning and device filtering.
+- `game_action_router_2d.gd`: Adds high-level features like normalized look-direction sensing (Mouse absolute vs. Stick relative).
