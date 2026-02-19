@@ -1,44 +1,33 @@
-# Friendslop Template
+# Friendslop Template 🎮
 
-A robust Godot 4 template designed for building online and local multiplayer games. This template provides a solid foundation for session management, scene transitions, and multi-device input routing.
+This is a Godot 4.4 starter kit designed to get your multiplayer game running quickly. It comes with scene synchronization, lobby, and player spawning systems. 
 
-## 🏗️ Architecture Overview
+## 🚀 Key Features
 
-The template is built around a set of decoupled Autoloads (Singletons) that handle different layers of the game's lifecycle. `LobbyManager` acts as the central controller for the session, responding to network events from `PeerManager` and driving scene transitions via `SceneManager`.
+*   **Multiplayer Ready**: Supports ENet out of the box and can be easily extended.
+*   **Safe Scene Management**: A robust system to handle level transitions for all connected players simultaneously.
+*   **Input Routing**: A clean pattern to handle local co-op input.
+*   **Handshake Replication**: A custom spawning system that ensures clients are _actually ready_ to receive spawn/sync packets
+*   **Testing**: Pre-configured with [GUT](https://gut.readthedocs.io/en/v9.5.0/) for unit testing.
 
-```mermaid
-graph TD
-    PM[PeerManager] -->|Network Events| LM[LobbyManager]
-    LM -->|Scene Requests| SM[SceneManager]
-    SM -->|Loads| SC[Game Scenes]
-    AR[ActionRouter] -->|Local Input| SC
-```
+## 📂 Project Structure
 
-## 🛠️ Key Systems
+*   `addons/`: Third-party tools ([GUT](https://gut.readthedocs.io/en/v9.5.0/)).
+*   `scenes/`: All your .tscn files (Menus, Levels, UI).
+*   `scripts/`: The brains
+    *   [`core/`](scripts/core/README.md): The Scene Manager nodes.
+    *   [`input/`](scripts/input/README.md): Device input handling logic.
+    *   [`multiplayer/`](scripts/multiplayer/README.md): Networking, Lobby, and Replication logic.
+*   `test/`: Unit tests to keep your code sane.
 
-### 📦 Core System ([scripts/core](./scripts/core/))
-- **SceneManager**: Handles threaded resource loading, loading screens, and global scene transitions. It ensures a smooth experience when switching between the main menu, lobbies, and active game sessions.
-- **LoadingOverlay**: A dedicated UI layer that provides visual feedback during asynchronous loading.
+## 🛠️ Getting Started
 
-> [!TIP]
-> Always call `SceneManager.mark_scene_as_loaded(self)` in your scene's `_ready()` function to signal the end of a transition.
+1.  Clone the repo.
+2.  Open in Godot 4.
+3.  Run the project. You'll land on a Main Menu where you can host or join.
 
-### 🌐 Multiplayer ([scripts/multiplayer](./scripts/multiplayer/))
-- **PeerManager**: Abstract network interface support for multiple backends like **ENet** (IP-based) and **Steam**.
-- **LobbyManager**: Manages the lifecycle of a game session, including player synchronization, lobby states, and map selection.
-- **LobbyPlayer**: Synchronized node representing connected users, with built-in authority control for names and status.
+## Philosophy
 
-### ⌨️ Input Routing ([scripts/input](./scripts/input/))
-- **ActionRouter**: Solves the "local multiplayer input" problem by cloning `InputMap` actions per device. This allows multiple players to share a keyboard or use separate gamepads with identical action names.
+I prefer **Simple over Complex**. This template avoids massive, monolithic managers in favor of smaller, focused components. If a script does more than one thing, it's probably doing too much.
 
-## 📁 Project Structure
-
-- `scripts/core/`: Essential global systems and scene management.
-- `scripts/multiplayer/`: Networking, providers, and session logic.
-- `scripts/input/`: Action routing and local multiplayer utilities.
-- `scripts/ui/`: Reusable UI components and menu logic.
-
----
-
-- [Godot Engine Documentation](https://docs.godotengine.org/en/stable/)
-- [Multiplayer Synchronizer](https://docs.godotengine.org/en/stable/classes/class_multiplayersynchronizer.html)
+Enjoy!

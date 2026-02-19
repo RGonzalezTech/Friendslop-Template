@@ -1,0 +1,156 @@
+[gd_scene load_steps=14 format=3 uid="uid://c8v8o5wcwdn0"]
+
+[ext_resource type="Script" uid="uid://du2b5x3tr66kf" path="res://scripts/core/network_level_root.gd" id="1_veaaa"]
+[ext_resource type="Script" uid="uid://bgp7clgn16cxg" path="res://scenes/menu/lobby/lobby_root.gd" id="1_x0y8v"]
+[ext_resource type="Script" uid="uid://cmxepo0tjp0tw" path="res://scenes/menu/lobby/lobby_player_list.gd" id="3_e2uke"]
+[ext_resource type="Script" uid="uid://cgjas4oa700yv" path="res://scripts/multiplayer/replication/handshake_synchronizer.gd" id="3_hmpq6"]
+[ext_resource type="Script" uid="uid://ds5gkhhfa6y0h" path="res://scripts/multiplayer/replication/handshake_spawner.gd" id="4_vfktl"]
+[ext_resource type="Script" uid="uid://dbkwvy8s4sj45" path="res://scenes/menu/lobby/lobby_ready_manager.gd" id="5_2av0u"]
+[ext_resource type="Script" uid="uid://4dcx7yyhvg1" path="res://scripts/multiplayer/replication/spawnable_resource.gd" id="5_hsqxd"]
+[ext_resource type="Script" uid="uid://csvpouralfa8c" path="res://scenes/menu/lobby/lobby_player_row_spawnable.gd" id="6_ailjs"]
+[ext_resource type="Script" uid="uid://cpiu7cm4jfdb2" path="res://scripts/multiplayer/player_spawning/simple_player_spawn_manager.gd" id="7_ailjs"]
+
+[sub_resource type="GDScript" id="GDScript_e2uke"]
+resource_name = "ChangeNameBtn"
+script/source = "extends Button
+
+## Pops up and interacts with the LobbyManager
+const NAME_CHANGE_POPUP_SCENE = preload(\"res://scenes/ui/NameChangePopup.tscn\")
+
+func _pressed() -> void:
+	var popup = NAME_CHANGE_POPUP_SCENE.instantiate()
+	add_child(popup)
+	popup.popup_with_name(LobbyManager.get_local_player().player_name)
+"
+
+[sub_resource type="GDScript" id="GDScript_ailjs"]
+resource_name = "LeaveBtn"
+script/source = "extends Button
+
+# Leave the game
+func _pressed() -> void:
+	SceneManager.go_to_main_menu()
+"
+
+[sub_resource type="Resource" id="Resource_e2uke"]
+script = ExtResource("6_ailjs")
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_t7vmr"]
+properties/0/path = NodePath(".:player_ready_states")
+properties/0/spawn = true
+properties/0/replication_mode = 2
+
+[node name="LobbyRoot" type="Node"]
+script = ExtResource("1_veaaa")
+
+[node name="Lobby" type="Control" parent="."]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_x0y8v")
+
+[node name="BG" type="ColorRect" parent="Lobby"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.180392, 0.180392, 0.180392, 1)
+
+[node name="MarginContainer" type="MarginContainer" parent="Lobby"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/margin_left = 40
+theme_override_constants/margin_top = 40
+theme_override_constants/margin_right = 40
+theme_override_constants/margin_bottom = 40
+
+[node name="VBoxContainer" type="VBoxContainer" parent="Lobby/MarginContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+
+[node name="Title" type="Label" parent="Lobby/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "LOBBY"
+horizontal_alignment = 1
+
+[node name="LobbyStateLabel" type="Label" parent="Lobby/MarginContainer/VBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_colors/font_color = Color(0.8, 0.8, 0.8, 1)
+text = "State: Lobby"
+horizontal_alignment = 1
+
+[node name="PlayerListScroll" type="ScrollContainer" parent="Lobby/MarginContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PlayerList" type="VBoxContainer" parent="Lobby/MarginContainer/VBoxContainer/PlayerListScroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+script = ExtResource("3_e2uke")
+
+[node name="HBoxContainer" type="HBoxContainer" parent="Lobby/MarginContainer/VBoxContainer"]
+layout_mode = 2
+theme_override_constants/separation = 20
+alignment = 1
+
+[node name="ChangeNameBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Change Name"
+script = SubResource("GDScript_e2uke")
+
+[node name="ReadyBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Ready"
+
+[node name="StartBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Start Game"
+
+[node name="LeaveBtn" type="Button" parent="Lobby/MarginContainer/VBoxContainer/HBoxContainer"]
+custom_minimum_size = Vector2(150, 50)
+layout_mode = 2
+text = "Leave"
+script = SubResource("GDScript_ailjs")
+
+[node name="PlayerSpawner" type="Node" parent="."]
+script = ExtResource("4_vfktl")
+spawnables = Dictionary[String, ExtResource("5_hsqxd")]({
+"player": SubResource("Resource_e2uke")
+})
+spawn_path = NodePath("../Lobby/MarginContainer/VBoxContainer/PlayerListScroll/PlayerList")
+metadata/_custom_type_script = "uid://ds5gkhhfa6y0h"
+
+[node name="SimplePlayerSpawnManager" type="Node" parent="." node_paths=PackedStringArray("network_level_root", "handshake_spawner")]
+script = ExtResource("7_ailjs")
+network_level_root = NodePath("..")
+handshake_spawner = NodePath("../PlayerSpawner")
+
+[node name="ReadyManager" type="Node" parent="."]
+script = ExtResource("5_2av0u")
+
+[node name="ReadySync" type="MultiplayerSynchronizer" parent="ReadyManager"]
+replication_config = SubResource("SceneReplicationConfig_t7vmr")
+script = ExtResource("3_hmpq6")
+metadata/_custom_type_script = "uid://cgjas4oa700yv"
+
+[connection signal="pressed" from="Lobby/MarginContainer/VBoxContainer/HBoxContainer/ReadyBtn" to="ReadyManager" method="_on_ready_btn_pressed"]
+[connection signal="pressed" from="Lobby/MarginContainer/VBoxContainer/HBoxContainer/StartBtn" to="Lobby" method="_on_start_btn_pressed"]
+[connection signal="despawned" from="PlayerSpawner" to="Lobby/MarginContainer/VBoxContainer/PlayerListScroll/PlayerList" method="_on_handshake_spawner_despawned"]
+[connection signal="despawned" from="PlayerSpawner" to="ReadyManager" method="_on_handshake_spawner_despawned"]
+[connection signal="spawned" from="PlayerSpawner" to="Lobby/MarginContainer/VBoxContainer/PlayerListScroll/PlayerList" method="_on_handshake_spawner_spawned"]
+[connection signal="spawned" from="PlayerSpawner" to="ReadyManager" method="_on_handshake_spawner_spawned"]

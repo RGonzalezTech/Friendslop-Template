@@ -1,11 +1,16 @@
 extends GutTest
 
+class MockSceneManager extends SceneManagerCode:
+	var called: int = 0
+
+	func _perform_scene_change(scene: PackedScene) -> void:
+		called += 1
+
 var _scene_manager: SceneManagerCode
 
 func before_each():
 	# Use partial_double so we can stub the scene change method
-	_scene_manager = partial_double(SceneManagerCode).new()
-	stub(_scene_manager, "_perform_scene_change").to_do_nothing()
+	_scene_manager = MockSceneManager.new()
 	
 	# Create a double for LoadingOverlay to verify fade_in/fade_out calls
 	var overlay_double = double(LoadingOverlay).new()
@@ -18,7 +23,7 @@ func after_each():
 	_scene_manager.free()
 
 func test_ignores_same_path():
-	var path = "res://scenes/menu/Lobby.tscn"
+	var path = SceneManagerCode.LOBBY_MENU
 	
 	_scene_manager.start_transition_to(path)
 	
@@ -34,8 +39,8 @@ func test_ignores_same_path():
 	assert_called_count(_scene_manager._loading_overlay.fade_in, 1)
 
 func test_can_overwrite_transition():
-	var path1 = "res://scenes/menu/Lobby.tscn"
-	var path2 = "res://scenes/menu/MainMenu.tscn"
+	var path1 = SceneManagerCode.LOBBY_MENU
+	var path2 = SceneManagerCode.MAIN_MENU
 	
 	_scene_manager.start_transition_to(path1)
 	var initial_id = _scene_manager._active_scene_load_id
@@ -85,7 +90,7 @@ func test_completes_transition():
 	# This internal logic calls _perform_scene_change
 	await wait_until(func(): return _scene_manager._active_scene_load_id > 0 and _scene_manager.is_stopped(), 2.0)
 	
-	assert_called(_scene_manager._perform_scene_change)
+	assert_eq(_scene_manager.called, 1)
 	
 	# In a real game, the new scene would call mark_scene_as_loaded.
 	# Since we stubbed it, we call it manually to finish the "loading" state.

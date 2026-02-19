@@ -1,0 +1,137 @@
+[gd_scene load_steps=11 format=3 uid="uid://bmtqgpu556ikj"]
+
+[ext_resource type="Script" uid="uid://du2b5x3tr66kf" path="res://scripts/core/network_level_root.gd" id="1_is44e"]
+[ext_resource type="Script" uid="uid://ds5gkhhfa6y0h" path="res://scripts/multiplayer/replication/handshake_spawner.gd" id="2_lwcv7"]
+[ext_resource type="Script" uid="uid://4dcx7yyhvg1" path="res://scripts/multiplayer/replication/spawnable_resource.gd" id="4_oacue"]
+[ext_resource type="PackedScene" uid="uid://cfxsymresktqj" path="res://scenes/level/2d/Player2D.tscn" id="5_270oc"]
+[ext_resource type="Script" uid="uid://de5iv1eivkd1b" path="res://scripts/multiplayer/player_spawning/random_player_spawn_manager.gd" id="6_oacue"]
+[ext_resource type="Script" uid="uid://c4anxhrrfds2" path="res://scenes/level/2d/spawnable_player_2d.gd" id="6_t4ny7"]
+
+[sub_resource type="Resource" id="Resource_6y2dm"]
+script = ExtResource("6_t4ny7")
+player_scene = ExtResource("5_270oc")
+metadata/_custom_type_script = "uid://c4anxhrrfds2"
+
+[sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_oacue"]
+size = Vector2(64, 64)
+
+[sub_resource type="GDScript" id="GDScript_270oc"]
+resource_name = "LobbyBtn"
+script/source = "extends Button
+
+func _ready() -> void:
+	if multiplayer.is_server():
+		self.visible = true
+
+func _pressed() -> void:
+	if not multiplayer.is_server():
+		return
+
+	LobbyManager.current_lobby.state = Lobby.State.SERVER_LOADING
+	LobbyManager.current_lobby.active_scene_path = SceneManager.LOBBY_MENU
+"
+
+[sub_resource type="GDScript" id="GDScript_oacue"]
+resource_name = "OnQuit"
+script/source = "extends Button
+
+func _pressed() -> void:
+	LobbyManager.disconnection_reason = \"You have left the game\"
+	SceneManager.go_to_main_menu()
+"
+
+[node name="NetworkLevelRoot" type="Node"]
+editor_description = "This node just emits a `player_ready_for_gameplay` signal that we can use to spawn/respond"
+script = ExtResource("1_is44e")
+metadata/_custom_type_script = "uid://du2b5x3tr66kf"
+
+[node name="WorldLevelRoot" type="Node2D" parent="."]
+
+[node name="PlayerSpawner" type="Node" parent="WorldLevelRoot"]
+script = ExtResource("2_lwcv7")
+spawnables = Dictionary[String, ExtResource("4_oacue")]({
+"player": SubResource("Resource_6y2dm")
+})
+spawn_path = NodePath("../PlayerContainer")
+metadata/_custom_type_script = "uid://ds5gkhhfa6y0h"
+
+[node name="RandomPlayerSpawnManager" type="Node" parent="WorldLevelRoot" node_paths=PackedStringArray("spawn_points", "network_level_root", "handshake_spawner")]
+script = ExtResource("6_oacue")
+spawn_points = NodePath("../SpawnPoints")
+network_level_root = NodePath("../..")
+handshake_spawner = NodePath("../PlayerSpawner")
+metadata/_custom_type_script = "uid://de5iv1eivkd1b"
+
+[node name="PlayerContainer" type="Node2D" parent="WorldLevelRoot"]
+
+[node name="SpawnPoints" type="Node2D" parent="WorldLevelRoot"]
+
+[node name="SpawnPoint01" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(146, 500)
+gizmo_extents = 32.0
+
+[node name="SpawnPoint02" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(991, 125)
+gizmo_extents = 32.0
+
+[node name="SpawnPoint03" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(1002, 546)
+gizmo_extents = 32.0
+
+[node name="SpawnPoint04" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(535, 121)
+gizmo_extents = 32.0
+
+[node name="SpawnPoint05" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(92, 74)
+gizmo_extents = 32.0
+
+[node name="SpawnPoint06" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(736, 541)
+gizmo_extents = 32.0
+
+[node name="SpawnPoint07" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(385, 388)
+gizmo_extents = 32.0
+
+[node name="Sprite2D" type="Sprite2D" parent="WorldLevelRoot"]
+texture = SubResource("PlaceholderTexture2D_oacue")
+
+[node name="Sprite2D2" type="Sprite2D" parent="WorldLevelRoot"]
+position = Vector2(1, 646)
+texture = SubResource("PlaceholderTexture2D_oacue")
+
+[node name="Sprite2D3" type="Sprite2D" parent="WorldLevelRoot"]
+position = Vector2(1150, 645)
+texture = SubResource("PlaceholderTexture2D_oacue")
+
+[node name="Sprite2D4" type="Sprite2D" parent="WorldLevelRoot"]
+position = Vector2(1154, 2)
+texture = SubResource("PlaceholderTexture2D_oacue")
+
+[node name="WorldCanvas" type="CanvasLayer" parent="."]
+
+[node name="CenterContainer" type="CenterContainer" parent="WorldCanvas"]
+custom_minimum_size = Vector2(0, 256)
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+
+[node name="ButtonsContainer" type="HBoxContainer" parent="WorldCanvas/CenterContainer"]
+layout_mode = 2
+theme_override_constants/separation = 16
+
+[node name="LobbyBtn" type="Button" parent="WorldCanvas/CenterContainer/ButtonsContainer"]
+visible = false
+layout_mode = 2
+text = "ADMIN:
+Back to Lobby"
+script = SubResource("GDScript_270oc")
+
+[node name="QuitBtn" type="Button" parent="WorldCanvas/CenterContainer/ButtonsContainer"]
+layout_mode = 2
+text = "Quit"
+script = SubResource("GDScript_oacue")

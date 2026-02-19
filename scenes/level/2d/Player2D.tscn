@@ -1,0 +1,62 @@
+[gd_scene load_steps=10 format=3 uid="uid://cfxsymresktqj"]
+
+[ext_resource type="Script" uid="uid://c2jo6ov5jo85p" path="res://scenes/level/2d/player_2d.gd" id="1_0gggj"]
+[ext_resource type="Texture2D" uid="uid://cxa787505l4f8" path="res://icon.svg" id="1_nvxot"]
+[ext_resource type="Script" uid="uid://cgjas4oa700yv" path="res://scripts/multiplayer/replication/handshake_synchronizer.gd" id="3_lcbp1"]
+[ext_resource type="Script" uid="uid://blavyom5t4cxy" path="res://scripts/input/game_action_router_2d.gd" id="4_h66i6"]
+[ext_resource type="Script" uid="uid://mammhfiprupq" path="res://scenes/level/2d/player_2d_camera.gd" id="5_cp828"]
+[ext_resource type="Script" uid="uid://ctub1e2buxw4w" path="res://scenes/level/2d/player_2d_label.gd" id="6_aqnat"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_0gggj"]
+size = Vector2(128, 128)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_h66i6"]
+properties/0/path = NodePath(".:global_position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:look_direction")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[sub_resource type="LabelSettings" id="LabelSettings_aqnat"]
+font_size = 32
+
+[node name="Player2d" type="CharacterBody2D"]
+motion_mode = 1
+script = ExtResource("1_0gggj")
+
+[node name="Player2DSprite" type="Sprite2D" parent="."]
+rotation = 1.57079
+texture = ExtResource("1_nvxot")
+
+[node name="Player2DCollisionShape" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_0gggj")
+
+[node name="Player2DActions" type="Node" parent="."]
+script = ExtResource("4_h66i6")
+metadata/_custom_type_script = "uid://blavyom5t4cxy"
+
+[node name="Player2DSync" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_h66i6")
+script = ExtResource("3_lcbp1")
+metadata/_custom_type_script = "uid://cgjas4oa700yv"
+
+[node name="Player2DCamera" type="Camera2D" parent="."]
+enabled = false
+zoom = Vector2(0.5, 0.5)
+position_smoothing_enabled = true
+position_smoothing_speed = 8.0
+script = ExtResource("5_cp828")
+peek_distance = 400.0
+
+[node name="Player2DLabel" type="Label" parent="."]
+offset_left = -153.0
+offset_top = 108.0
+offset_right = 153.0
+offset_bottom = 185.0
+text = "Example Name"
+label_settings = SubResource("LabelSettings_aqnat")
+horizontal_alignment = 1
+vertical_alignment = 1
+script = ExtResource("6_aqnat")
+smoothing = 0.18

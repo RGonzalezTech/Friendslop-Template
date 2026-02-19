@@ -1,6 +1,6 @@
 [gd_scene load_steps=3 format=3 uid="uid://db5yumbf2bn7e"]
 
-[ext_resource type="Script" uid="uid://b7u88ut8100pg" path="res://scripts/ui/loading_overlay.gd" id="1_c7e5i"]
+[ext_resource type="Script" uid="uid://b7u88ut8100pg" path="res://scenes/ui/loading_overlay.gd" id="1_c7e5i"]
 
 [sub_resource type="LabelSettings" id="LabelSettings_c7e5i"]
 font_size = 36

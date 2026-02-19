@@ -14,7 +14,7 @@ extends Timer
 ## The default `MainMenu` scene.
 const MAIN_MENU: String = "res://scenes/menu/MainMenu.tscn"
 ## The default `Lobby` scene.
-const LOBBY_MENU: String = "res://scenes/menu/Lobby.tscn"
+const LOBBY_MENU: String = "res://scenes/menu/lobby/Lobby.tscn"
 
 ## Emitted when the scene loader is active or not.
 signal is_loading_update(is_loading: bool)
@@ -93,7 +93,7 @@ func start_transition_to(path: String) -> void:
     var this_scene_load_id = _active_scene_load_id
     
     _target_scene = path
-    is_loading = true
+    is_loading = true # Signal to lobby manager to update player status to SCENE_LOADING
     await _loading_overlay.fade_in()
     
     if this_scene_load_id != _active_scene_load_id:
@@ -120,7 +120,7 @@ func go_to_main_menu() -> void:
 ## This function will register the scene node and fade out the loading overlay.
 func mark_scene_as_loaded(node: Node) -> void:
     _current_scene_node = node
-    is_loading = false
+    is_loading = false # emits signal, lobby manager will update player status to READY
     _loading_overlay.fade_out()
 #endregion
 
