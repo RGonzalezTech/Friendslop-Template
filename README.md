@@ -2,6 +2,8 @@
 
 This is a Godot 4.4 starter kit designed to get your multiplayer game running quickly. It comes with scene synchronization, lobby, and player spawning systems. 
 
+[![Watch the video](https://img.youtube.com/vi/T7xIrRo7aLg/0.jpg)](https://www.youtube.com/watch?v=T7xIrRo7aLg)
+
 ## 🚀 Key Features
 
 *   **Multiplayer Ready**: Supports ENet out of the box and can be easily extended.
