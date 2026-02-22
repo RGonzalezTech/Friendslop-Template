@@ -56,9 +56,12 @@ sequenceDiagram
 
 ## 🛠️ Key Components
 
--   **`HandshakeSpawner`**: Replaces the standard `MultiplayerSpawner`. It manages the actual instantiation of nodes and handles "replaying" the world state for late-joiners.
--   **`HandshakeSynchronizer`**: Handles the communication of state (Ready/Not Ready) between client and server.
--   **`HandshakeRetryTimer`**: A helper that ensures requests are sent repeatedly until the server acknowledges them, overcoming potential UDP packet loss during the initial connection.
+-   **`HandshakeSpawner`**: Replaces the standard `MultiplayerSpawner`. It is built entirely through GDScript and RPCs, and it manages the instantiation of any node that is registered in the `spawnables` dictionary.
+    - You map a label to a resource path in the `spawnables` dictionary.
+    - When you call `spawn(type, params)`, it will use the `type` => `SpawnableResource` to `resource.spawn(params)` spawn the node.
+    - When you call `despawn_id(s_id)`, it will use the `type` => `SpawnableResource` to `resource.teardown(node)` despawn the node.
+-   **`HandshakeSynchronizer`**: An extension of the [MultiplayerSynchronizer](https://docs.godotengine.org/en/stable/tutorials/multiplayer/multiplayer_synchronizer.html) that only enables syncing when the client has requested it.
+-   **`HandshakeRetryTimer`**: A helper that ensures requests are sent repeatedly until the server acknowledges them, overcoming potential packet loss or an un-ready scene tree.
 -   **`SpawnRequest`**: A data object representing a pending spawn operation, including its type and specific parameters.
 
 This system ensures that all clients can sync with retry behavior.

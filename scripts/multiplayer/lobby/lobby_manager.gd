@@ -7,7 +7,6 @@ extends Node
 ## Example:
 ## [code]
 ## LobbyManager.initialize_lobby_as_host()
-## LobbyManager.toggle_ready()
 ## LobbyManager.update_player_name("My Name")
 ## LobbyManager.reset_lobby()
 ## [/code]
