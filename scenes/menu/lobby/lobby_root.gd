@@ -11,7 +11,8 @@ extends Control
 
 #region Node References
 
-@onready var start_button = %StartBtn
+@onready var start_button_2d = %StartBtn2D
+@onready var start_button_3d = %StartBtn3D
 @onready var lobby_state_label = %LobbyStateLabel
 #endregion
 
@@ -32,12 +33,20 @@ func _ready() -> void:
 
 #region UI Interaction
 
-func _on_start_btn_pressed() -> void:
+func _on_start_btn_2d_pressed() -> void:
 	if not multiplayer.is_server(): return
 	
 	# Transition to loading state
 	LobbyManager.current_lobby.state = Lobby.State.SERVER_LOADING
 	LobbyManager.current_lobby.active_scene_path = "res://scenes/level/2d/Demo2DMap.tscn"
+	
+
+func _on_start_btn_3d_pressed() -> void:
+	if not multiplayer.is_server(): return
+	
+	# Transition to loading state
+	LobbyManager.current_lobby.state = Lobby.State.SERVER_LOADING
+	LobbyManager.current_lobby.active_scene_path = "res://scenes/level/3d/Demo3DMap.tscn"
 
 #endregion
 
@@ -46,7 +55,8 @@ func _on_start_btn_pressed() -> void:
 func _update_buttons_ui() -> void:
 	if not is_inside_tree(): return
 	var is_host = multiplayer.is_server()
-	start_button.visible = is_host
+	start_button_2d.visible = is_host
+	start_button_3d.visible = is_host
 
 func _update_lobby_state_ui() -> void:
 	if not is_inside_tree() or not lobby_state_label: return
