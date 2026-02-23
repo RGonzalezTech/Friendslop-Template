@@ -3,7 +3,7 @@ class_name GameActionRouter2D
 
 enum LookSource {MOUSE, ACTION}
 
-## The current source of look/peak input.
+## The current source of look/peek input.
 var current_look_source: LookSource = LookSource.MOUSE
 
 func _init() -> void:
