@@ -1,4 +1,4 @@
-extends GutTest
+extends BaseNetworkGutTest
 
 # --- Mocks ---
 class MockSpawnableResource extends SpawnableResource:
@@ -11,15 +11,6 @@ class MockSpawnableResource extends SpawnableResource:
 	func teardown(node: Node) -> void:
 		node.queue_free()
 
-# --- Network Setup Variables ---
-var server_node: Node
-var client_node: Node
-var _server_peer: ENetMultiplayerPeer
-var _client_peer: ENetMultiplayerPeer
-
-const PORT = 8915
-const LOCALHOST = "127.0.0.1"
-
 # --- Test Variables ---
 var server_spawner: HandshakeSpawner
 var client_spawner: HandshakeSpawner
@@ -28,61 +19,39 @@ var client_container: Node
 var mock_resource: MockSpawnableResource
 
 func before_each():
-	# 1. Setup Network Topology
-	server_node = Node.new()
-	server_node.name = "ServerRoot"
-	add_child(server_node)
-	
-	client_node = Node.new()
-	client_node.name = "ClientRoot"
-	add_child(client_node)
-
-	# 2. Setup Server Peer
-	_server_peer = ENetMultiplayerPeer.new()
-	_server_peer.create_server(PORT)
-	var server_mp = SceneMultiplayer.new()
-	server_mp.multiplayer_peer = _server_peer
-	get_tree().set_multiplayer(server_mp, server_node.get_path())
-
-	# 3. Setup Client Peer
-	_client_peer = ENetMultiplayerPeer.new()
-	_client_peer.create_client(LOCALHOST, PORT)
-	var client_mp = SceneMultiplayer.new()
-	client_mp.multiplayer_peer = _client_peer
-	get_tree().set_multiplayer(client_mp, client_node.get_path())
-
-	# 4. Setup Test Resources & Containers
+	# 1. Setup Test Resources & Containers
 	mock_resource = MockSpawnableResource.new()
 	
 	server_container = Node.new()
 	server_container.name = "Entities"
-	server_node.add_child(server_container)
+	_server_node.add_child(server_container)
 	
 	client_container = Node.new()
 	client_container.name = "Entities"
-	client_node.add_child(client_container)
+	_client_node.add_child(client_container)
 	
-	# 5. Setup Spawners
+	# 2. Setup Spawners
 	server_spawner = HandshakeSpawner.new()
 	server_spawner.name = "Spawner"
 	server_spawner.spawn_path = server_container.get_path()
 	server_spawner.spawnables["mock_unit"] = mock_resource
-	server_node.add_child(server_spawner)
+	_server_node.add_child(server_spawner)
 	
 	client_spawner = HandshakeSpawner.new()
 	client_spawner.name = "Spawner"
 	client_spawner.spawn_path = client_container.get_path()
 	client_spawner.spawnables["mock_unit"] = mock_resource
-	client_node.add_child(client_spawner)
+	_client_node.add_child(client_spawner)
 
-	# 6. Wait for connection
+	# 3. Wait for connection
 	await wait_seconds(0.1)
 
 func after_each():
-	if _server_peer: _server_peer.close()
-	if _client_peer: _client_peer.close()
-	server_node.free()
-	client_node.free()
+	# Clear test containers and spawners from the base nodes
+	for child in _server_node.get_children():
+		child.free()
+	for child in _client_node.get_children():
+		child.free()
 
 # --- Tests ---
 
