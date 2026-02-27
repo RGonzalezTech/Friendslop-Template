@@ -19,6 +19,9 @@ var client_container: Node
 var mock_resource: MockSpawnableResource
 
 func before_each():
+	setup_server()
+	setup_client()
+	
 	# 1. Setup Test Resources & Containers
 	mock_resource = MockSpawnableResource.new()
 	

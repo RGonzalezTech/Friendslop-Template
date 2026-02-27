@@ -1,5 +1,6 @@
-class_name TestBasePlayerSpawnManager
-extends GutTest
+extends BaseNetworkGutTest
+
+# --- Mocks ---
 
 # Mock implementation of the abstract base class
 class MockPlayerSpawnManager:
@@ -13,124 +14,126 @@ class MockPlayerSpawnManager:
 	func set_mock_spawn_params(params: Dictionary) -> void:
 		_mock_spawn_params = params
 
+class MockSpawnableResource extends SpawnableResource:
+	func spawn(params: Dictionary) -> Node:
+		var n = Node.new()
+		n.name = "MockPlayer"
+		for key in params:
+			n.set_meta(key, params[key])
+		return n
+
+# --- Variables ---
+
 var _spawn_manager: MockPlayerSpawnManager
-var _mock_level_root: NetworkLevelRoot
-var _mock_handshake_spawner: HandshakeSpawner
+var _level_root: NetworkLevelRoot
+var _handshake_spawner: HandshakeSpawner
+var _spawn_container: Node
+
+# --- Setup / Teardown ---
 
 func before_each():
-	_mock_level_root = double(NetworkLevelRoot).new()
-	_mock_handshake_spawner = double(HandshakeSpawner).new()
+	setup_server()
+
+	# 1. Setup Containers
+	_spawn_container = Node.new()
+	_spawn_container.name = "SpawnContainer"
+	_server_node.add_child(_spawn_container)
 	
-	# Create our mock manager
+	# 2. Setup Level Root (real or double if complex)
+	_level_root = double(NetworkLevelRoot).new()
+	
+	# 3. Setup Real HandshakeSpawner
+	_handshake_spawner = HandshakeSpawner.new()
+	_handshake_spawner.spawn_path = _spawn_container.get_path()
+	_handshake_spawner.spawnables["player"] = MockSpawnableResource.new()
+	_server_node.add_child(_handshake_spawner)
+	
+	# 4. Setup Spawn Manager
 	_spawn_manager = MockPlayerSpawnManager.new()
+	_spawn_manager.network_level_root = _level_root
+	_spawn_manager.handshake_spawner = _handshake_spawner
+	_spawn_manager.player_spawner_label = "player"
 	
-	# Inject dependencies
-	_spawn_manager.network_level_root = _mock_level_root
-	_spawn_manager.handshake_spawner = _mock_handshake_spawner
+	# Add to _server_node provided by BaseNetworkGutTest
+	_server_node.add_child(_spawn_manager)
 	
-	add_child_autofree(_spawn_manager)
+	# Wait for network setup
+	await wait_seconds(0.1)
 
 func after_each():
-	# Clean up doubles if they are strictly Nodes and not auto-freed by add_child_autofree
-	# Usually doubles extending Node need to be freed if not added to tree.
-	if is_instance_valid(_mock_level_root):
-		_mock_level_root.free()
-	if is_instance_valid(_mock_handshake_spawner):
-		_mock_handshake_spawner.free()
+	if is_instance_valid(_spawn_container):
+		_spawn_container.free()
+	if is_instance_valid(_spawn_manager):
+		_spawn_manager.free()
+	if is_instance_valid(_handshake_spawner):
+		_handshake_spawner.free()
+
+# --- Helpers ---
+
+func _simulate_player_ready_for_spawn(peer_id: int, spawn_params: Dictionary) -> void:
+	_spawn_manager.set_mock_spawn_params(spawn_params)
+	_level_root.player_ready_for_gameplay.emit(peer_id)
+
+# --- Tests ---
 
 func test_initialization():
-	assert_not_null(_spawn_manager.network_level_root, "NetworkLevelRoot should be set")
-	assert_not_null(_spawn_manager.handshake_spawner, "HandshakeSpawner should be set")
+	assert_not_null(_spawn_manager.network_level_root, "NetworkLevelRoot should be injected")
+	assert_not_null(_spawn_manager.handshake_spawner, "HandshakeSpawner should be injected")
 
 func test_spawn_player_on_ready_signal():
-	# Setup
 	var peer_id = 123
 	var spawn_params = {"pos": Vector2(100, 100), "peer_id": peer_id}
-	_spawn_manager.set_mock_spawn_params(spawn_params)
 	
-	# Trigger signal
-	_mock_level_root.player_ready_for_gameplay.emit(peer_id)
+	_simulate_player_ready_for_spawn(peer_id, spawn_params)
 	
-	# Verification
-	# handshake_spawner.spawn(label: String, params: Dictionary)
-	assert_called(_mock_handshake_spawner, "spawn", [_spawn_manager.player_spawner_label, spawn_params])
+	await wait_seconds(0.2)
+	
+	assert_eq(_spawn_container.get_child_count(), 1, "A player should have been spawned in the container")
+	var spawned_node = _spawn_container.get_child(0)
+	assert_eq(spawned_node.get_meta("peer_id"), peer_id, "The spawned node should have the correct peer_id metadata")
 
 func test_spawn_player_only_once():
 	var peer_id = 456
 	var spawn_params = {"pos": Vector2(200, 200), "peer_id": peer_id}
-	_spawn_manager.set_mock_spawn_params(spawn_params)
 	
-	# First Call
-	_mock_level_root.player_ready_for_gameplay.emit(peer_id)
+	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	await wait_seconds(0.2)
 	
-	# Simulate the spawn completion to register the player internally
-	var mock_node = Node.new()
-	var mock_request = SpawnRequest.new()
-	mock_request.params = spawn_params
-	mock_request.spawn_id = "spawn_456"
-	_spawn_manager._on_player_spawned(mock_node, mock_request)
+	_level_root.player_ready_for_gameplay.emit(peer_id)
+	await wait_seconds(0.1)
 	
-	assert_called(_mock_handshake_spawner, "spawn", [_spawn_manager.player_spawner_label, spawn_params])
-	
-	# Second Call - should not spawn again
-	# Clear previous calls to be sure
-	# clear_signal_watcher(_mock_handshake_spawner) # Doesn't exist directly, but we check count
-	
-	_mock_level_root.player_ready_for_gameplay.emit(peer_id)
-	
-	# Should still be called exactly once
-	assert_call_count(_mock_handshake_spawner, "spawn", 1)
-	
-	mock_node.free()
+	assert_eq(_spawn_container.get_child_count(), 1, "Player should only be spawned once")
 
 func test_player_left_despawns():
 	var peer_id = 789
-	var spawn_id = "spawn_789"
-	var spawn_params = {"pos": Vector2(300, 300), "peer_id": peer_id}
-	_spawn_manager.set_mock_spawn_params(spawn_params)
+	var spawn_params = {"peer_id": peer_id}
+	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	await wait_seconds(0.2)
+	assert_eq(_spawn_container.get_child_count(), 1, "Player should be spawned initially")
 	
-	# 1. Setup internal state (simulate successful spawn)
-	var mock_node = Node.new()
-	var mock_request = SpawnRequest.new()
-	mock_request.spawn_id = spawn_id
-	mock_request.params = spawn_params
+	LobbyManager.player_left.emit(peer_id)
+	await wait_seconds(0.2)
 	
-	# Manually call callback or setup internal dictionary if possible
-	# Since _spawned_players is private (conventionally), we use the callback
-	_spawn_manager._on_player_spawned(mock_node, mock_request)
-	
-	# 2. Trigger player left
-	# Use the global LobbyManager trigger if possible, or simulate the connection
-	if LobbyManager.has_signal("player_left"):
-		LobbyManager.player_left.emit(peer_id)
-	else:
-		fail_test("LobbyManager does not have player_left signal")
-	
-	# Verify despawn called
-	assert_called(_mock_handshake_spawner, "despawn_id", [spawn_id])
-	
-	mock_node.free()
+	assert_eq(_spawn_container.get_child_count(), 0, "Player should be despawned after leaving")
 
-func test_internal_cleanup_on_despawned():
+func test_can_remove_same_peer_id_multiple_times_without_crashing():
+	## This test verifies that removing a player multiple times (first via HandshakeSpawner
+	## despawn, then via player_left signal) does not cause a crash and keeps the state clean.
 	var peer_id = 101
-	var spawn_id = "spawn_101"
-	var spawn_params = {"pos": Vector2(400, 400), "peer_id": peer_id}
+	var spawn_params = {"peer_id": peer_id}
 	
-	# 1. Setup internal state
-	var mock_node = Node.new()
-	var mock_request = SpawnRequest.new()
-	mock_request.spawn_id = spawn_id
-	mock_request.params = spawn_params
-	_spawn_manager._on_player_spawned(mock_node, mock_request)
+	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	await wait_seconds(0.2)
 	
-	# 2. Simulate despawn callback (e.g. from server command)
-	_spawn_manager._on_player_despawned(spawn_id)
+	var spawned_node = _spawn_container.get_child(0)
+	var spawn_id = spawned_node.get_meta("s_id")
 	
-	# 3. Now if player leaves, it should NOT try to despawn again
-	if LobbyManager.has_signal("player_left"):
-		LobbyManager.player_left.emit(peer_id)
+	_handshake_spawner.despawn_id(spawn_id)
+	await wait_seconds(0.2)
 	
-	# Verify despawn_id was NOT called (since _on_player_despawned doesn't call it, and player_left shouldn't either)
-	assert_not_called(_mock_handshake_spawner, "despawn_id")
+	assert_eq(_spawn_container.get_child_count(), 0, "Node should be despawned from the scene tree")
 	
-	mock_node.free()
+	LobbyManager.player_left.emit(peer_id)
+	await wait_seconds(0.1)
+	
+	assert_eq(_spawn_container.get_child_count(), 0, "Container should remain empty after player_left signal")

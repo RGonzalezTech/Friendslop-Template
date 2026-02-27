@@ -1,7 +1,10 @@
 extends BaseNetworkGutTest
 
 func before_each():
-	# Wait for connection (setup is handled by base class)
+	setup_server()
+	setup_client()
+	
+	# Wait for connection
 	await wait_seconds(0.1)
 
 func after_each():
