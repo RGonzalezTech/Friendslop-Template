@@ -46,3 +46,4 @@ sequenceDiagram
 
 - `action_router.gd`: The base class. Handles the heavy lifting of `InputMap` cloning and device filtering.
 - `game_action_router_2d.gd`: Adds high-level features like normalized look-direction sensing (Mouse absolute vs. Stick relative).
+- `game_action_router_3d.gd`: First/third-person 3D router with captured-mouse look, jump, and sprint support. Inspired by [Brackeys' ProtoController](https://github.com/Brackeys/brackeys-proto-controller).
