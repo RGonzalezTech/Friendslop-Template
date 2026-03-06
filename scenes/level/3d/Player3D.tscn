@@ -1,0 +1,50 @@
+[gd_scene format=3 uid="uid://c5a57shf1fs2j"]
+
+[ext_resource type="Script" uid="uid://cmp8xa431p7w7" path="res://scenes/level/3d/player_3d.gd" id="1_p3d"]
+[ext_resource type="Script" uid="uid://cgjas4oa700yv" path="res://scripts/multiplayer/replication/handshake_synchronizer.gd" id="2_p3d"]
+[ext_resource type="Script" uid="uid://ds3v7myfcnw1x" path="res://scripts/input/game_action_router_3d.gd" id="3_p3d"]
+[ext_resource type="Script" path="res://scenes/level/3d/player_3d_label.gd" id="4_lbl"]
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_fqjrw"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_fqjrw"]
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_p3d"]
+properties/0/path = NodePath(".:global_position")
+properties/0/spawn = true
+properties/0/replication_mode = 1
+properties/1/path = NodePath(".:look_rotation")
+properties/1/spawn = true
+properties/1/replication_mode = 1
+
+[node name="Player3D" type="CharacterBody3D" unique_id=1468054989]
+script = ExtResource("1_p3d")
+
+[node name="MeshInstance3D" type="MeshInstance3D" parent="." unique_id=1784529723]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+mesh = SubResource("CapsuleMesh_fqjrw")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="." unique_id=1180241873]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
+shape = SubResource("CapsuleShape3D_fqjrw")
+
+[node name="Player3DActions" type="Node" parent="." unique_id=2015255263]
+script = ExtResource("3_p3d")
+
+[node name="Player3DSync" type="MultiplayerSynchronizer" parent="." unique_id=2057214950]
+replication_config = SubResource("SceneReplicationConfig_p3d")
+script = ExtResource("2_p3d")
+
+[node name="Head" type="Node3D" parent="." unique_id=958458399]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6999999, 0)
+
+[node name="Camera3D" type="Camera3D" parent="Head" unique_id=1054231569]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.049999952, -0.4)
+
+[node name="Player3DLabel" type="Label3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2.3, 0)
+billboard = 1
+text = "Player Name"
+font_size = 32
+script = ExtResource("4_lbl")
+smoothing = 0.18
