@@ -36,8 +36,14 @@ func _on_player_ready_for_gameplay(peer_id: int) -> void:
 		return
 
 	var params = _get_spawn_params(peer_id)
-	assert(params.has("peer_id"), "Spawn parameters must contain peer_id")
+	_validate_params(params)
 	handshake_spawner.spawn(player_spawner_label, params)
+
+# Ensures that _get_spawm_params() returns valid parameters
+func _validate_params(params: Dictionary) -> void:
+	var peer_id = params.get("peer_id")
+	assert(peer_id is int, "Spawn parameters must contain peer_id")
+	assert(peer_id > 0, "Spawn parameters must contain a valid peer_id")
 
 #region Player Callbacks
 
