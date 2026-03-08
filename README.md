@@ -51,4 +51,6 @@ This is a Godot 4.4 starter kit designed to get your multiplayer game running qu
 
 I prefer **Simple over Complex**. This template avoids massive, monolithic managers in favor of smaller, focused components. If a script does more than one thing, it's probably doing too much.
 
+See [CONTRIBUTING.md](CONTRIBUTING.md) for more information.
+
 Enjoy!
