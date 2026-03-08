@@ -1,16 +1,19 @@
-[gd_scene load_steps=11 format=3 uid="uid://bmtqgpu556ikj"]
+[gd_scene load_steps=12 format=3 uid="uid://bmtqgpu556ikj"]
 
 [ext_resource type="Script" uid="uid://du2b5x3tr66kf" path="res://scripts/core/network_level_root.gd" id="1_is44e"]
 [ext_resource type="Script" uid="uid://ds5gkhhfa6y0h" path="res://scripts/multiplayer/replication/handshake_spawner.gd" id="2_lwcv7"]
+[ext_resource type="Script" uid="uid://civuhfyvjfcxo" path="res://scripts/multiplayer/player_spawning/coll_queue_player_spawn_manager.gd" id="2_oacue"]
 [ext_resource type="Script" uid="uid://4dcx7yyhvg1" path="res://scripts/multiplayer/replication/spawnable_resource.gd" id="4_oacue"]
 [ext_resource type="PackedScene" uid="uid://cfxsymresktqj" path="res://scenes/level/2d/Player2D.tscn" id="5_270oc"]
-[ext_resource type="Script" uid="uid://de5iv1eivkd1b" path="res://scripts/multiplayer/player_spawning/random_player_spawn_manager.gd" id="6_oacue"]
 [ext_resource type="Script" uid="uid://c4anxhrrfds2" path="res://scenes/level/2d/spawnable_player_2d.gd" id="6_t4ny7"]
 
 [sub_resource type="Resource" id="Resource_6y2dm"]
 script = ExtResource("6_t4ny7")
 player_scene = ExtResource("5_270oc")
 metadata/_custom_type_script = "uid://c4anxhrrfds2"
+
+[sub_resource type="CircleShape2D" id="CircleShape2D_oacue"]
+radius = 64.0
 
 [sub_resource type="PlaceholderTexture2D" id="PlaceholderTexture2D_oacue"]
 size = Vector2(64, 64)
@@ -47,6 +50,14 @@ metadata/_custom_type_script = "uid://du2b5x3tr66kf"
 
 [node name="WorldLevelRoot" type="Node2D" parent="."]
 
+[node name="CollQueuePlayerSpawnManager" type="Node" parent="WorldLevelRoot" node_paths=PackedStringArray("spawn_points", "network_level_root", "handshake_spawner")]
+editor_description = "Spawns players when the spawn point collision box is empty. Otherwise, they wait in a queue."
+script = ExtResource("2_oacue")
+spawn_points = NodePath("../SpawnPoints")
+network_level_root = NodePath("../..")
+handshake_spawner = NodePath("../PlayerSpawner")
+metadata/_custom_type_script = "uid://civuhfyvjfcxo"
+
 [node name="PlayerSpawner" type="Node" parent="WorldLevelRoot"]
 script = ExtResource("2_lwcv7")
 spawnables = Dictionary[String, ExtResource("4_oacue")]({
@@ -55,44 +66,21 @@ spawnables = Dictionary[String, ExtResource("4_oacue")]({
 spawn_path = NodePath("../PlayerContainer")
 metadata/_custom_type_script = "uid://ds5gkhhfa6y0h"
 
-[node name="RandomPlayerSpawnManager" type="Node" parent="WorldLevelRoot" node_paths=PackedStringArray("spawn_points", "network_level_root", "handshake_spawner")]
-script = ExtResource("6_oacue")
-spawn_points = NodePath("../SpawnPoints")
-network_level_root = NodePath("../..")
-handshake_spawner = NodePath("../PlayerSpawner")
-metadata/_custom_type_script = "uid://de5iv1eivkd1b"
-
 [node name="PlayerContainer" type="Node2D" parent="WorldLevelRoot"]
 
 [node name="SpawnPoints" type="Node2D" parent="WorldLevelRoot"]
 
-[node name="SpawnPoint01" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(146, 500)
-gizmo_extents = 32.0
+[node name="SpawnPoint01" type="Area2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(211, 298)
 
-[node name="SpawnPoint02" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(991, 125)
-gizmo_extents = 32.0
+[node name="SpawnColl" type="CollisionShape2D" parent="WorldLevelRoot/SpawnPoints/SpawnPoint01"]
+shape = SubResource("CircleShape2D_oacue")
 
-[node name="SpawnPoint03" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(1002, 546)
-gizmo_extents = 32.0
+[node name="SpawnPoint02" type="Area2D" parent="WorldLevelRoot/SpawnPoints"]
+position = Vector2(883, 148)
 
-[node name="SpawnPoint04" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(535, 121)
-gizmo_extents = 32.0
-
-[node name="SpawnPoint05" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(92, 74)
-gizmo_extents = 32.0
-
-[node name="SpawnPoint06" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(736, 541)
-gizmo_extents = 32.0
-
-[node name="SpawnPoint07" type="Marker2D" parent="WorldLevelRoot/SpawnPoints"]
-position = Vector2(385, 388)
-gizmo_extents = 32.0
+[node name="SpawnColl" type="CollisionShape2D" parent="WorldLevelRoot/SpawnPoints/SpawnPoint02"]
+shape = SubResource("CircleShape2D_oacue")
 
 [node name="Sprite2D" type="Sprite2D" parent="WorldLevelRoot"]
 texture = SubResource("PlaceholderTexture2D_oacue")
