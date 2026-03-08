@@ -10,7 +10,7 @@ The system uses a **Strategy Pattern** to determine how and where players appear
 - **The Spawner ([`HandshakeSpawner`](../replication/README.md))**: Performs the actual replication of the player node through an abstract `SpawnableResource` interface.
 - **Strategies**: Specific implementations that define the "where":
     - `SimplePlayerSpawnManager`: Passes only the `peer_id`. Useful when the player scene handles its own placement.
-    - `RandomPlayerSpawnManager`: Picks a random child from a designated `spawn_points` node.
+    - `CollQueuePlayerSpawnManager`: Uses `Area2D` and `Area3D` nodes as spawn points, and waits until space has cleared before attempting to spawn.
 
 ## 🔄 Spawning Flow
 
@@ -81,22 +81,22 @@ The "Brain" of the operation. It connects to [`NetworkLevelRoot`](../../core/REA
 - **Signal**: `player_ready_for_gameplay` triggers the spawn.
 - **Cleanup**: Automatically despawns the player's network object when they leave the lobby.
 
-### `RandomPlayerSpawnManager`
-Best for deathmatches or shared maps.
-- **Setup**: Create a Node (e.g., "SpawnPoints") and add `Marker2D` or `Node3D` children at your desired locations.
-- **Export**: Assign that parent Node to the `spawn_points` property.
-
 ### `SimplePlayerSpawnManager`
 Minimalist approach.
 - **Logic**: Only provides the `peer_id` to the spawner.
 - **Use Case**: When players spawn at a fixed location or if the player scene contains its own entry logic.
 
+### `CollQueuePlayerSpawnManager`
+Collision-aware spawning using a retry queue.
+- **Logic**: Iterates through `Area2D` or `Area3D` nodes to find a clear spot using `has_overlapping_bodies()`. If all points are blocked, players are queued and retried every 200ms automatically.
+- **Use Case**: Standard 2D or 3D gameplay where players can collide
+
 ## 🔌 Integration
 
-1.  Add a **Spawn Manager** (e.g., `RandomPlayerSpawnManager`) to your level scene.
+1.  Add a **Spawn Manager** (e.g., `CollQueuePlayerSpawnManager`) to your level scene.
 2.  Assign the [`NetworkLevelRoot`](../../core/README.md) and [`HandshakeSpawner`](../replication/README.md) references.
 3.  Ensure the `player_spawner_label` matches a configured resource in your [`HandshakeSpawner`](../replication/README.md).
-4.  If using `RandomPlayerSpawnManager`, assign your container of spawn markers to `spawn_points`.
+4.  If using `CollQueuePlayerSpawnManager`, assign the parent node of your `Area2D`/`Area3D` nodes to `spawn_points`.
 
 ## 🆕 Custom Strategies
 

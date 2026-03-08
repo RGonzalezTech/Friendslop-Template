@@ -42,8 +42,7 @@ func _on_player_ready_for_gameplay(peer_id: int) -> void:
 # Ensures that _get_spawm_params() returns valid parameters
 func _validate_params(params: Dictionary) -> void:
 	var peer_id = params.get("peer_id")
-	assert(peer_id is int, "Spawn parameters must contain peer_id")
-	assert(peer_id > 0, "Spawn parameters must contain a valid peer_id")
+	_validate_peer_id(peer_id)
 
 #region Player Callbacks
 
@@ -58,6 +57,7 @@ func _on_player_left(peer_id: int) -> void:
 
 func _on_player_spawned(_node: Node, request: SpawnRequest) -> void:
 	var peer_id = request.params["peer_id"]
+	_validate_peer_id(peer_id)
 	_spawned_players[peer_id] = request
 
 func _on_player_despawned(spawn_id: String) -> void:
@@ -70,3 +70,7 @@ func _on_player_despawned(spawn_id: String) -> void:
 			break
 
 #endregion
+
+func _validate_peer_id(peer_id: int) -> void:
+	assert(peer_id is int, "BasePlayerSpawnManager: Players must be spawned with peer_id int")
+	assert(peer_id > 0, "BasePlayerSpawnManager: Players peer_id must be greater than 0")
