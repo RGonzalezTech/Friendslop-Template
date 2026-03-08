@@ -36,10 +36,7 @@ func _on_player_ready_for_gameplay(peer_id: int) -> void:
 		return
 
 	_spawn_queue.append(peer_id)
-	
-	if _retry_timer.is_stopped():
-		_retry_timer.start()
-		_try_spawn.call_deferred() # Proactively try to spawn at the end of the frame
+	_retry_timer.start()
 
 # Every N milliseconds, try to spawn any remaining player(s)
 func _try_spawn() -> void:
