@@ -47,7 +47,7 @@ func before_each():
 	_client_node.add_child(client_spawner)
 
 	# 3. Wait for connection
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 
 func after_each():
 	# Clear test containers and spawners from the base nodes
@@ -65,7 +65,7 @@ func test_spawn_replicates_to_client():
 	server_spawner.spawn("mock_unit", {"hp": 100})
 	
 	# 2. Wait for RPC
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	# 3. Verify Server side
 	assert_eq(server_container.get_child_count(), 1, "Server should have spawned node")
@@ -81,7 +81,7 @@ func test_spawn_replicates_to_client():
 func test_despawn_replicates_to_client():
 	# Setup: Spawn something first
 	server_spawner.spawn("mock_unit", {})
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	var server_entity = server_container.get_child(0)
 	var s_id = server_entity.get_meta("s_id")
@@ -92,7 +92,7 @@ func test_despawn_replicates_to_client():
 	server_spawner.despawn_id(s_id)
 	
 	# 2. Wait for RPC
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	# 3. Verify
 	assert_eq(client_container.get_child_count(), 0, "Client should have removed node")
@@ -106,7 +106,7 @@ func test_late_join_catchup():
 	# request a replay since the nodes are newly added.
 	
 	# Wait for the catch-up handshake
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	
 	assert_eq(client_container.get_child_count(), 1, "Client should receive existing entities via catchup")
 	

@@ -5,7 +5,7 @@ func before_each():
 	setup_client()
 	
 	# Wait for connection
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 
 func after_each():
 	# Clear test children from the base nodes
@@ -47,14 +47,14 @@ func test_handshake_flow_grants_visibility():
 	client_sync.name = "SyncNode"
 	_client_node.add_child(client_sync)
 	
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	# 3. Trigger handshake manually or wait for timer
 	# We manually trigger to ensure test speed/determinism
 	client_sync._on_sync_requested()
 	
 	# 4. Allow RPCs to travel
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	# 5. Verify Server State
 	var client_peer_id = _server_node.multiplayer.get_peers()[0]

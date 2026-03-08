@@ -7,6 +7,13 @@ func before_all() -> void:
     # Set up as a network server
     setup_server()
 
+    # Speed up the retry timer for this test
+    Engine.time_scale = 2
+
+func after_all() -> void:
+    super ()
+    Engine.time_scale = 1
+
 var mock_network_root: NetworkLevelRoot
 var mock_handshake_spawner: HandshakeSpawner
 

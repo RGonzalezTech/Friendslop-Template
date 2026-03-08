@@ -58,7 +58,7 @@ func before_each():
 	_server_node.add_child(_spawn_manager)
 	
 	# Wait for network setup
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 
 func after_each():
 	if is_instance_valid(_spawn_container):
@@ -86,7 +86,7 @@ func test_spawn_player_on_ready_signal():
 	
 	_simulate_player_ready_for_spawn(peer_id, spawn_params)
 	
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 1, "A player should have been spawned in the container")
 	var spawned_node = _spawn_container.get_child(0)
@@ -97,10 +97,10 @@ func test_spawn_player_only_once():
 	var spawn_params = {"pos": Vector2(200, 200), "peer_id": peer_id}
 	
 	_simulate_player_ready_for_spawn(peer_id, spawn_params)
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	
 	_level_root.player_ready_for_gameplay.emit(peer_id)
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 1, "Player should only be spawned once")
 
@@ -108,11 +108,11 @@ func test_player_left_despawns():
 	var peer_id = 789
 	var spawn_params = {"peer_id": peer_id}
 	_simulate_player_ready_for_spawn(peer_id, spawn_params)
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	assert_eq(_spawn_container.get_child_count(), 1, "Player should be spawned initially")
 	
 	LobbyManager.player_left.emit(peer_id)
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 0, "Player should be despawned after leaving")
 
@@ -123,17 +123,17 @@ func test_can_remove_same_peer_id_multiple_times_without_crashing():
 	var spawn_params = {"peer_id": peer_id}
 	
 	_simulate_player_ready_for_spawn(peer_id, spawn_params)
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	
 	var spawned_node = _spawn_container.get_child(0)
 	var spawn_id = spawned_node.get_meta("s_id")
 	
 	_handshake_spawner.despawn_id(spawn_id)
-	await wait_seconds(0.2)
+	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 0, "Node should be despawned from the scene tree")
 	
 	LobbyManager.player_left.emit(peer_id)
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 0, "Container should remain empty after player_left signal")
