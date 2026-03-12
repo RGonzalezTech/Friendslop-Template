@@ -36,7 +36,7 @@ func test_reset_lobby_clears_players_and_state():
 	_lobby_manager.reset_lobby()
 	
 	# reset_lobby uses queue_free, so we must wait for it to be processed
-	await wait_seconds(0.1)
+	await wait_process_frames(2)
 	
 	assert_eq(_lobby_manager._lobby_players_container.get_child_count(), 0, "LobbyPlayers container should be empty")
 	assert_eq(_lobby_manager.current_lobby.host_id, 1, "Host ID should reset to 1")
@@ -114,7 +114,7 @@ func test_network_events_spawn_and_remove_players():
 	
 	# Test _on_peer_disconnected
 	_lobby_manager._on_peer_disconnected(peer_id)
-	await wait_seconds(0.1) # queue_free
+	await wait_process_frames(2) # queue_free
 	assert_null(_lobby_manager.get_player(peer_id), "Player node should be removed for disconnected peer")
 
 func test_connection_shutdown_resets_lobby_and_returns_to_menu():

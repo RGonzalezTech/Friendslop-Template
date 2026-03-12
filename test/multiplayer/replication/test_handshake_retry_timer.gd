@@ -2,6 +2,13 @@ extends GutTest
 
 var _timer: HandshakeRetryTimer
 
+func before_all():
+	# Speed up the timer logic
+	Engine.time_scale = 3
+
+func after_all():
+	Engine.time_scale = 1
+
 func before_each():
 	_timer = HandshakeRetryTimer.new()
 	add_child_autofree(_timer)

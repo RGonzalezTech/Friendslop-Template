@@ -14,6 +14,8 @@ version-resolver:
       - 'patch'
   default: patch
 template: |
+  # Friendslop Template
+
   ## Changes
 
   $CHANGES

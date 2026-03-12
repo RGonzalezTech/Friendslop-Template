@@ -21,7 +21,7 @@ var _spawned: Dictionary[String, SpawnRequest] = {}
 
 var _handshake: HandshakeRetryTimer
 
-#region Initialization
+#region init
 
 func _enter_tree() -> void:
 	assert(spawn_path, "HandshakeSpawner must have a spawn_path")
