@@ -1,0 +1,90 @@
+[gd_scene format=3 uid="uid://b1pse6tuuepe"]
+
+[ext_resource type="Script" uid="uid://du2b5x3tr66kf" path="res://scripts/core/network_level_root.gd" id="1_ajme4"]
+[ext_resource type="Script" uid="uid://ds5gkhhfa6y0h" path="res://scripts/multiplayer/replication/handshake_spawner.gd" id="2_ohv0i"]
+[ext_resource type="Script" uid="uid://de5iv1eivkd1b" path="res://scripts/multiplayer/player_spawning/random_player_spawn_manager.gd" id="3_smxf0"]
+[ext_resource type="PackedScene" uid="uid://c5a57shf1fs2j" path="res://scenes/level/3d/Player3D.tscn" id="4_ohv0i"]
+[ext_resource type="Script" uid="uid://4dcx7yyhvg1" path="res://scripts/multiplayer/replication/spawnable_resource.gd" id="5_sp3d"]
+[ext_resource type="Script" uid="uid://b0qw4fo2ixlou" path="res://scenes/level/3d/spawnable_player_3d.gd" id="6_sp3d"]
+
+[sub_resource type="Resource" id="Resource_sp3d"]
+script = ExtResource("6_sp3d")
+player_scene = ExtResource("4_ohv0i")
+metadata/_custom_type_script = "uid://b0qw4fo2ixlou"
+
+[node name="NetworkLevelRoot" type="Node" unique_id=480273431]
+script = ExtResource("1_ajme4")
+metadata/_custom_type_script = "uid://du2b5x3tr66kf"
+
+[node name="WorldLevelRoot" type="Node3D" parent="." unique_id=1105638830]
+
+[node name="PlayerSpawner" type="Node" parent="WorldLevelRoot" unique_id=671358734]
+script = ExtResource("2_ohv0i")
+spawnables = Dictionary[String, ExtResource("5_sp3d")]({
+"player": SubResource("Resource_sp3d")
+})
+spawn_path = NodePath("../PlayerContainer")
+metadata/_custom_type_script = "uid://ds5gkhhfa6y0h"
+
+[node name="RandomPlayerSpawnManager" type="Node" parent="WorldLevelRoot" unique_id=1083883634 node_paths=PackedStringArray("spawn_points", "network_level_root", "handshake_spawner")]
+script = ExtResource("3_smxf0")
+spawn_points = NodePath("../SpawnPoints")
+network_level_root = NodePath("../..")
+handshake_spawner = NodePath("../PlayerSpawner")
+metadata/_custom_type_script = "uid://de5iv1eivkd1b"
+
+[node name="PlayerContainer" type="Node3D" parent="WorldLevelRoot" unique_id=1175168314]
+
+[node name="SpawnPoints" type="Node3D" parent="WorldLevelRoot" unique_id=833217782]
+
+[node name="SpawnPoint01" type="Marker3D" parent="WorldLevelRoot/SpawnPoints" unique_id=2014229732]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.5, -4)
+
+[node name="SpawnPoint02" type="Marker3D" parent="WorldLevelRoot/SpawnPoints" unique_id=1574503493]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.5, -4)
+
+[node name="SpawnPoint03" type="Marker3D" parent="WorldLevelRoot/SpawnPoints" unique_id=1670411346]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -4, 0.5, 4)
+
+[node name="SpawnPoint04" type="Marker3D" parent="WorldLevelRoot/SpawnPoints" unique_id=1703288863]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 4, 0.5, 4)
+
+[node name="SpawnPoint05" type="Marker3D" parent="WorldLevelRoot/SpawnPoints" unique_id=816856320]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.5, 0)
+
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="WorldLevelRoot" unique_id=1955728392]
+transform = Transform3D(1, 0, 0, 0, 0.70710677, 0.7071067, 0, -0.70710677, 0.7071067, 0, 12.5, 0)
+
+[node name="Floor" type="CSGBox3D" parent="WorldLevelRoot" unique_id=587757284]
+use_collision = true
+size = Vector3(32, 1, 32)
+
+[node name="CSGCombiner3D" type="CSGCombiner3D" parent="WorldLevelRoot" unique_id=1261444452]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 8, 0, 0)
+use_collision = true
+
+[node name="CSGBox3D2" type="CSGBox3D" parent="WorldLevelRoot/CSGCombiner3D" unique_id=1913130084]
+transform = Transform3D(-4.371139e-08, 0, 1, 0, 1, 0, -1, 0, -4.371139e-08, -15.5, 2.5, 0.70000005)
+use_collision = true
+size = Vector3(16, 4, 1)
+
+[node name="CSGBox3D3" type="CSGBox3D" parent="WorldLevelRoot/CSGCombiner3D" unique_id=341810053]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -7.9999995, 2.5, -7.8)
+use_collision = true
+size = Vector3(16, 4, 1)
+
+[node name="CSGBox3D4" type="CSGBox3D" parent="WorldLevelRoot/CSGCombiner3D" unique_id=1744994882]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -6.9999995, 2.5, 8.2)
+use_collision = true
+size = Vector3(16, 4, 1)
+
+[node name="CSGBox3D5" type="CSGBox3D" parent="WorldLevelRoot/CSGCombiner3D" unique_id=174047672]
+transform = Transform3D(-4.371139e-08, 4.371139e-08, 1, -4.371139e-08, 1, -4.371139e-08, -1, -4.371139e-08, -4.3711385e-08, 0.5000006, 2.5, -0.3000003)
+use_collision = true
+size = Vector3(16, 4, 1)
+
+[node name="CSGBox3D6" type="CSGBox3D" parent="WorldLevelRoot/CSGCombiner3D" unique_id=1870931491]
+transform = Transform3D(-4.371139e-08, 4.371139e-08, 1, -4.371139e-08, 1, -4.371139e-08, -1, -4.371139e-08, -4.3711385e-08, 0.50000083, 1.7500002, 6.2)
+operation = 2
+use_collision = true
+size = Vector3(2, 2.5, 2)
