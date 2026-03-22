@@ -1,32 +1,39 @@
 class_name LobbyManagerCode
 extends Node
 
-## Manages the multiplayer lobby session life-cycle.
-## Handles player connections, information syncing, and game transitions.
+## This autoload manages the multiplayer lobby session life-cycle.
 ## 
-## Example:
-## [code]
+## Responds to player connections and monitors player states as they join, leave, and load scenes.[br][br]
+## 
+## [b]Example:[/b]
+## [codeblock]
 ## LobbyManager.initialize_lobby_as_host()
 ## LobbyManager.update_player_name("My Name")
 ## LobbyManager.reset_lobby()
-## [/code]
+## [/codeblock]
 
 ## The name of the node that contains all [LobbyPlayer] nodes.
 const LOBBY_PLAYERS_CONTAINER_NAME: String = "LobbyPlayers"
 
+## Reference to the default local player id. See [method LobbyPlayer.DEFAULT_LOCAL_PLAYER_ID].
+const DEFAULT_LOCAL_PLAYER_ID: int = LobbyPlayer.DEFAULT_LOCAL_PLAYER_ID
+
 ## Emitted when a player joins the lobby.
-signal player_joined(peer_id: int)
+signal player_joined(peer_id: int, local_player_id: int)
 
 ## Emitted when a player leaves the lobby.
-signal player_left(peer_id: int)
+signal player_left(peer_id: int, local_player_id: int)
 
 ## Emitted when a player's status changes.
-signal player_status_update(peer_id: int, status: LobbyPlayer.Status)
+signal player_status_update(peer_id: int, local_player_id: int, status: LobbyPlayer.Status)
 
 var current_lobby: Lobby
 var _lobby_player_spawner: MultiplayerSpawner
 var _lobby_players_container: Node
 var disconnection_reason: String = ""
+
+## Dictionary of peer_id -> local_player_id -> LobbyPlayer
+var _players_by_peer_and_local_id: Dictionary[int, Dictionary] = {}
 
 ## Refrence to the scene manager. Can be overridden for testing.
 var scene_manager: SceneManagerCode = SceneManager
@@ -74,11 +81,14 @@ func _setup_spawner() -> void:
 	_lobby_player_spawner.spawn_function = _spawn_player
 	add_child(_lobby_player_spawner)
 	
-func _spawn_player(data: int) -> Node:
+func _spawn_player(data: Array) -> Node:
+	var peer_id: int = data[0]
+	var local_player_id: int = data[1]
+	
 	var new_player: LobbyPlayer = LobbyPlayer.new()
-	new_player.peer_id = data
-	new_player.player_name = "Player %d" % data
-	new_player.status_changed.connect(_on_player_status_changed.bind(new_player.peer_id))
+	new_player.peer_id = peer_id
+	new_player.local_player_id = local_player_id
+	new_player.player_name = "Player %d-%d" % [peer_id, local_player_id]
 	return new_player
 
 #endregion
@@ -89,6 +99,7 @@ func _spawn_player(data: int) -> Node:
 func reset_lobby() -> void:
 	for child in _lobby_players_container.get_children():
 		child.queue_free()
+	_players_by_peer_and_local_id.clear()
 	
 	current_lobby.host_id = 1
 	current_lobby.active_scene_path = ""
@@ -106,24 +117,29 @@ func initialize_lobby_as_host() -> void:
 	current_lobby.host_id = multiplayer.get_unique_id()
 	_add_player(current_lobby.host_id)
 
-func _add_player(peer_id: int) -> void:
+func _add_player(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> void:
 	if not multiplayer.is_server():
 		return
 	
-	_lobby_player_spawner.spawn(peer_id)
+	_lobby_player_spawner.spawn([peer_id, local_player_id])
 
 #endregion
 
 #region Player API
 
-## Returns the player node for a given peer ID.
-func get_player(peer_id: int) -> LobbyPlayer:
-	return _lobby_players_container.get_node_or_null(str(peer_id)) as LobbyPlayer
+## Returns the player node for a given peer ID and device ID.
+func get_player(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> LobbyPlayer:
+	var players_for_peer := get_players(peer_id)
+	return players_for_peer.get(local_player_id)
+
+## Returns a Dictionary of local_player_id -> LobbyPlayer for a given peer ID.
+func get_players(peer_id: int) -> Dictionary:
+	return _players_by_peer_and_local_id.get(peer_id, {})
 
 ## Returns true if the player is ready for gameplay.
 ## This is determined by the player's status.
-func is_player_ready_for_gameplay(peer_id: int) -> bool:
-	var this_player = get_player(peer_id)
+func is_player_ready_for_gameplay(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> bool:
+	var this_player = get_player(peer_id, local_player_id)
 	if not this_player:
 		return false
 
@@ -138,7 +154,7 @@ func is_player_ready_for_gameplay(peer_id: int) -> bool:
 			return false
 
 ## Returns the local player node.
-func get_local_player() -> LobbyPlayer:
+func get_local_player(local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> LobbyPlayer:
 	var has_peer = multiplayer.multiplayer_peer
 	if not has_peer:
 		return null
@@ -147,7 +163,19 @@ func get_local_player() -> LobbyPlayer:
 	if conn_status != MultiplayerPeer.ConnectionStatus.CONNECTION_CONNECTED:
 		return null
 
-	return get_player(multiplayer.get_unique_id())
+	return get_player(multiplayer.get_unique_id(), local_player_id)
+
+## Returns a Dictionary of local_player_id -> LobbyPlayer for the local peer.
+func get_local_players() -> Dictionary:
+	var has_peer = multiplayer.multiplayer_peer
+	if not has_peer:
+		return {}
+	
+	var conn_status = has_peer.get_connection_status()
+	if conn_status != MultiplayerPeer.ConnectionStatus.CONNECTION_CONNECTED:
+		return {}
+
+	return get_players(multiplayer.get_unique_id())
 
 ## Returns an array of all active lobby player nodes.
 func get_all_players() -> Array[LobbyPlayer]:
@@ -157,15 +185,19 @@ func get_all_players() -> Array[LobbyPlayer]:
 			list.append(child)
 	return list
 
+## Returns an array of all active lobby player peer IDs.
+func get_all_player_peer_ids() -> Array[int]:
+	return _players_by_peer_and_local_id.keys()
+
 ## Requests a name update. Server will validate and sync via RPC.
-func update_player_name(new_name: String) -> void:
-	var player_node = get_local_player()
+func update_player_name(new_name: String, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> void:
+	var player_node = get_local_player(local_player_id)
 	if player_node:
 		player_node.update_player_name.rpc_id(1, new_name)
 
 ## Requests a status update. Server will validate and sync via RPC.
-func update_player_status(new_status: LobbyPlayer.Status) -> void:
-	var player_node = get_local_player()
+func update_player_status(new_status: LobbyPlayer.Status, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> void:
+	var player_node = get_local_player(local_player_id)
 	if player_node:
 		player_node.set_status.rpc_id(1, new_status)
 
@@ -182,10 +214,16 @@ func _on_peer_connected(peer_id: int) -> void:
 		_add_player(peer_id)
 
 func _on_peer_disconnected(peer_id: int) -> void:
-	if multiplayer.is_server():
-		var player_node = get_player(peer_id)
+	if not multiplayer.is_server():
+		return
+	# Remove all players associated with this peer_id
+	var players_for_peer = get_players(peer_id)
+
+	for local_player_id in players_for_peer.keys():
+		var player_node = players_for_peer[local_player_id]
 		if player_node:
 			player_node.queue_free()
+	_players_by_peer_and_local_id.erase(peer_id)
 
 func _on_connection_shutdown(reason: String) -> void:
 	reset_lobby()
@@ -211,19 +249,28 @@ func _on_scene_loading_update(is_loading: bool) -> void:
 #region Player Signals
 
 func _on_player_added(node: Node) -> void:
-	var player_node = node as LobbyPlayer
+	var player_node := node as LobbyPlayer
 	if not player_node:
 		return
 		
-	player_joined.emit(player_node.peer_id)
+	player_node.status_changed.connect(_on_player_status_changed.bind(player_node.peer_id, player_node.local_player_id))
+	var peer_dict: Dictionary = _players_by_peer_and_local_id.get_or_add(player_node.peer_id, {})
+	peer_dict[player_node.local_player_id] = player_node
+	player_joined.emit(player_node.peer_id, player_node.local_player_id)
 
 func _on_player_removed(node: Node) -> void:
-	var player_node = node as LobbyPlayer
+	var player_node := node as LobbyPlayer
 	if not player_node:
 		return
 		
-	player_left.emit(player_node.peer_id)
+	var peer_dict: Dictionary = _players_by_peer_and_local_id.get(player_node.peer_id, {})
+	if peer_dict.erase(player_node.local_player_id):
+		# If we actually removed something,
+		if peer_dict.is_empty():
+			# remove the peer entry if it has 0 devices.
+			_players_by_peer_and_local_id.erase(player_node.peer_id)
+	player_left.emit(player_node.peer_id, player_node.local_player_id)
 
-func _on_player_status_changed(status: LobbyPlayer.Status, peer_id: int) -> void:
-	player_status_update.emit(peer_id, status)
+func _on_player_status_changed(status: LobbyPlayer.Status, peer_id: int, local_player_id: int) -> void:
+	player_status_update.emit(peer_id, local_player_id, status)
 #endregion
