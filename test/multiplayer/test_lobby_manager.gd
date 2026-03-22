@@ -61,7 +61,7 @@ func test_initialize_lobby_as_host_sets_server_state():
 	assert_eq(players[0].peer_id, multiplayer.get_unique_id(), "Player ID should match host")
 
 func test_spawn_player_configures_lobby_player():
-	var result = _lobby_manager._spawn_player(123)
+	var result = _lobby_manager._spawn_player([123, -999])
 	
 	assert_not_null(result, "Spawn result should not be null")
 	assert_is(result, LobbyPlayer, "Result should be LobbyPlayer")
@@ -91,10 +91,10 @@ func test_internal_signals_emit_player_joined_and_left():
 	p_node.peer_id = p_id
 	
 	_lobby_manager._lobby_players_container.add_child(p_node)
-	assert_signal_emitted_with_parameters(_lobby_manager.player_joined, [p_id])
+	assert_signal_emitted_with_parameters(_lobby_manager.player_joined, [p_id, p_node.device_idx])
 	
 	_lobby_manager._lobby_players_container.remove_child(p_node)
-	assert_signal_emitted_with_parameters(_lobby_manager.player_left, [p_id])
+	assert_signal_emitted_with_parameters(_lobby_manager.player_left, [p_id, p_node.device_idx])
 	p_node.free()
 
 func test_network_events_spawn_and_remove_players():

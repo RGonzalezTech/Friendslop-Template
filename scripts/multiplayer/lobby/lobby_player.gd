@@ -12,6 +12,10 @@ enum Status {
 	IN_GAME ## Active in the game world
 }
 
+## By default, lobby players receive an "unset" device index.
+## Only when using split-screen will this be different.
+const UNSET_DEVICE_IDX: int = -999
+
 ## Emitted when any of the player's properties change.
 signal info_changed
 
@@ -25,17 +29,27 @@ signal status_changed(status: Status)
 		name = str(peer_id)
 		info_changed.emit()
 
+## The local device index that controls this player.
+@export var device_idx: int = UNSET_DEVICE_IDX:
+	set(value):
+		if device_idx == value:
+			return
+		device_idx = value
+		info_changed.emit()
+
 ## The name of the player.
 @export var player_name: String = "Player":
 	set(value):
-		if player_name == value: return
+		if player_name == value:
+			return
 		player_name = value
 		info_changed.emit()
 
 ## The status of the player in the lobby.
 @export var status: Status = Status.CONNECTING:
 	set(value):
-		if status == value: return
+		if status == value:
+			return
 		status = value
 		info_changed.emit()
 		status_changed.emit(status)
