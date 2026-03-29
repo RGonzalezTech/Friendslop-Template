@@ -49,12 +49,20 @@ func setup_client() -> void:
 	client_peer.create_client("127.0.0.1", NETWORK_TEST_PORT)
 	_client_node.multiplayer.multiplayer_peer = client_peer
 
-func after_all() -> void:
-	# Close connections
-	if _client_node and _client_node.multiplayer.multiplayer_peer:
-		_client_node.multiplayer.multiplayer_peer.close()
+## If the [member _server_node] is set and has a multiplayer peer, close it.
+func teardown_server() -> void:
 	if _server_node and _server_node.multiplayer.multiplayer_peer:
 		_server_node.multiplayer.multiplayer_peer.close()
+
+## If the [member _client_node] is set and has a multiplayer peer, close it.
+func teardown_client() -> void:
+	if _client_node and _client_node.multiplayer.multiplayer_peer:
+		_client_node.multiplayer.multiplayer_peer.close()
+
+func after_all() -> void:
+	# Close connections
+	teardown_client()
+	teardown_server()
 
 	# Remove nodes
 	if _client_node:

@@ -50,6 +50,8 @@ func before_each():
 	await wait_process_frames(2)
 
 func after_each():
+	teardown_client()
+	teardown_server()
 	# Clear test containers and spawners from the base nodes
 	for child in _server_node.get_children():
 		child.free()

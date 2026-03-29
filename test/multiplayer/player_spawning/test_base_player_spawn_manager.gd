@@ -61,6 +61,7 @@ func before_each():
 	await wait_process_frames(2)
 
 func after_each():
+	teardown_server()
 	if is_instance_valid(_spawn_container):
 		_spawn_container.free()
 	if is_instance_valid(_spawn_manager):
