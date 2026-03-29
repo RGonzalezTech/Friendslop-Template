@@ -5,7 +5,7 @@ extends Node
 ## into new scenes.
 
 ## Server-Side: Emitted when a player becomes ready to start gameplay.
-signal player_ready_for_gameplay(peer_id: int)
+signal player_ready_for_gameplay(peer_id: int, local_player_id: int)
 
 ## Reference to the ready status for convenience.
 const SYNCED = LobbyPlayer.Status.SYNCED
@@ -19,7 +19,7 @@ func _ready() -> void:
 
 ## Helper function to mark the scene as loaded.
 func _mark_ready() -> void:
-	SceneManager.mark_scene_as_loaded(self)
+	SceneManager.mark_scene_as_loaded(self )
 
 ## Server-Side: Announce all ready players.
 func _server_announce_ready_players() -> void:
@@ -32,14 +32,14 @@ func _server_announce_ready_players() -> void:
 	for player in LobbyManager.get_all_players():
 		if player.status != SYNCED:
 			continue
-		player_ready_for_gameplay.emit(player.peer_id)
+		player_ready_for_gameplay.emit(player.peer_id, player.local_player_id)
 
 ## Server-Side: Handle player status updates.
-func _on_player_status_update(peer_id: int, status: LobbyPlayer.Status) -> void:
+func _on_player_status_update(peer_id: int, local_player_id: int, status: LobbyPlayer.Status) -> void:
 	if not multiplayer.is_server():
 		return
 
 	if status != SYNCED:
 		return
 
-	player_ready_for_gameplay.emit(peer_id)
+	player_ready_for_gameplay.emit(peer_id, local_player_id)
