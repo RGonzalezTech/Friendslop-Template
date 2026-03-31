@@ -66,6 +66,6 @@ func after_all() -> void:
 
 	# Remove nodes
 	if _client_node:
-		_client_node.queue_free()
+		_client_node.free()
 	if _server_node:
-		_server_node.queue_free()
+		_server_node.free()

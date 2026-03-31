@@ -61,9 +61,9 @@ func before_each() -> void:
     _server_node.add_child(spawn_manager)
 
 func after_each() -> void:
-    mock_network_root.queue_free()
-    mock_handshake_spawner.queue_free()
-    spawn_manager.queue_free()
+    mock_network_root.free()
+    mock_handshake_spawner.free()
+    spawn_manager.free()
 
 #endregion
 
