@@ -60,5 +60,5 @@ The **`PeerManager`** is your single source of truth for the connection state. W
 
 ## 🛠️ Core Components
 
-- **[`LobbyManager`](../lobby/README.md)**: Orchestrates the game session, tracking player readiness and broadcasting the active scene.
+- **[`LobbyManager`](../multiplayer/lobby/README.md)**: Orchestrates the game session, tracking player readiness and broadcasting the active scene.
 - **[`Handshake System`](../multiplayer/replication/README.md)**: Uses `HandshakeSpawner` and `HandshakeSynchronizer` to ensure late-joining clients are perfectly synced to your gameplay scenes before they start playing.
