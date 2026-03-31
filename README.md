@@ -1,5 +1,10 @@
 # Friendslop Template 🎮
 
+> [!IMPORTANT]
+> To me, **Friendslop** means a game prioritizes fun moments with friends over everything else.
+> Generally, this means that the graphics & UI are simple and to the point, but the core experience is present and polished.
+> I'm developing this template for my own personal use as a solid foundation for future friendslop ideas I'd like to explore.
+
 This is a Godot 4.4 starter kit designed to get your multiplayer game running quickly. It comes with scene synchronization, lobby, and player spawning systems. 
 
 [![Tests](https://img.shields.io/github/actions/workflow/status/RGonzalezTech/Friendslop-Template/testing.yml?style=for-the-badge&logo=github&label=Tests)](https://github.com/RGonzalezTech/Friendslop-Template/actions/workflows/testing.yml)
