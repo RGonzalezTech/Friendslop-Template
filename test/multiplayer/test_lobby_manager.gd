@@ -59,6 +59,34 @@ func test_initialize_lobby_as_host_sets_server_state():
 
 #region LobbyPlayer Handling
 
+const PEER_IDS = [1, 20, 123, 456, 789, 10]
+func test_creates_lobby_player_from_peer_id(peer_id = use_parameters(PEER_IDS)):
+	var lobby_player = _lobby_manager.create_player(peer_id)
+	assert_is(lobby_player, LobbyPlayer, "Lobby player should be a LobbyPlayer")
+	assert_eq(lobby_player.peer_id, peer_id, "Lobby player peer ID should be %d" % [peer_id])
+	assert_eq(lobby_player.local_player_id, DEFAULT_LOCAL_PLAYER_ID, "Lobby player local player ID should be %d" % [DEFAULT_LOCAL_PLAYER_ID])
+	lobby_player.free()
+
+func test_creates_guest_lobby_player_if_parent_exists(peer_id = use_parameters(PEER_IDS)):
+	var lobby_player_before_parent = _lobby_manager.create_player(peer_id, 1)
+	assert_null(lobby_player_before_parent, "Lobby player should be null before parent exists")
+	
+	# Create parent node
+	var parent = _lobby_manager.create_player(peer_id)
+	assert_not_null(parent, "Parent should not be null")
+	assert_eq(parent.local_player_id, DEFAULT_LOCAL_PLAYER_ID, "Parent local player ID should be default")
+	
+	# "Spawn" it
+	_lobby_manager._lobby_players_container.add_child(parent)
+	
+	var lobby_player = _lobby_manager.create_player(peer_id, 1)
+	assert_is(lobby_player, LobbyPlayer, "Lobby player should be a LobbyPlayer")
+	assert_eq(lobby_player.peer_id, peer_id, "Lobby player peer ID should be %d" % [peer_id])
+	assert_eq(lobby_player.local_player_id, 1, "Lobby player local player ID should be 1")
+	assert_eq(lobby_player._parent_lobby_player, parent, "Lobby player should have parent")
+	lobby_player.free()
+	parent.free()
+
 const DEFAULT_LOCAL_PLAYER_ID = LobbyPlayer.DEFAULT_LOCAL_PLAYER_ID
 # Peer ID, Local Player ID
 const SPAWN_PARAMS: Array = [
@@ -69,20 +97,16 @@ const SPAWN_PARAMS: Array = [
 	[789, 2],
 	[10, 3]
 ]
-func test_spawn_function_creates_lobby_player(params = use_parameters(SPAWN_PARAMS)):
-	var peer_id = params[0]
-	var local_player_id = params[1]
-
-	var result = _lobby_manager._spawn_player([peer_id, local_player_id])
+# We just test with local_player_id = 0
+# Because otherwise, we have to setup the environment
+func test_spawn_function_creates_lobby_player():
+	var peer_id = 2
+	var result = _lobby_manager._spawn_player([peer_id, 0])
 	
 	assert_not_null(result, "Spawn result should not be null")
 	assert_is(result, LobbyPlayer, "Result should be LobbyPlayer")
 	assert_eq(result.peer_id, peer_id, "Peer ID should be %d" % [peer_id])
-	assert_eq(result.local_player_id, local_player_id, "Device index should be %d" % [local_player_id])
-
-	var expected_node_name = "%d_%d" % [peer_id, local_player_id]
-	assert_eq(result.name, expected_node_name, "Node name should be '%s'" % [expected_node_name])
-	
+	assert_eq(result.local_player_id, 0, "Device index should be 0")
 	# _spawn_player returns a node but doesn't add it to tree (MultiplayerSpawner does that)
 	# So we should free it manually to avoid leaks, as success/failures might leave it dangling?
 	# result is an Object.

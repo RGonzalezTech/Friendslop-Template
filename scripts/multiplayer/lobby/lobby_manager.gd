@@ -85,11 +85,7 @@ func _spawn_player(data: Array) -> Node:
 	var peer_id: int = data[0]
 	var local_player_id: int = data[1]
 	
-	var new_player: LobbyPlayer = LobbyPlayer.new()
-	new_player.peer_id = peer_id
-	new_player.local_player_id = local_player_id
-	new_player.player_name = "Player %d-%d" % [peer_id, local_player_id]
-	return new_player
+	return create_player(peer_id, local_player_id)
 
 #endregion
 
@@ -126,6 +122,26 @@ func _add_player(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -
 #endregion
 
 #region Player API
+
+## Simply creates a [LobbyPlayer], unless [param local_player_id] is not the default value.
+## If [param local_player_id] is not the default value, it will try to find the host player
+## and set it as the parent of the new player.
+func create_player(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> LobbyPlayer:
+	var new_player = LobbyPlayer.new()
+	new_player.peer_id = peer_id
+
+	if local_player_id != DEFAULT_LOCAL_PLAYER_ID:
+		# Trying to create a guest player.
+		# Check if we have a "host"
+		var host_player = get_player(peer_id)
+		if not host_player:
+			new_player.free()
+			return null
+		
+		new_player._parent_lobby_player = host_player
+		new_player.local_player_id = local_player_id
+	
+	return new_player
 
 ## Returns the player node for a given peer ID and device ID.
 func get_player(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> LobbyPlayer:
