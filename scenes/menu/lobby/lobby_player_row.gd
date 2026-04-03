@@ -12,6 +12,14 @@ extends HBoxContainer
 		peer_id = value
 		_connect_player.call_deferred()
 
+@export var local_player_id: int = 0:
+	set(value):
+		if value == local_player_id:
+			return
+		_disconnect_player()
+		local_player_id = value
+		_connect_player.call_deferred()
+
 @onready var name_label: Label = $NameLabel
 @onready var ready_label: Label = $ReadyLabel
 @onready var status_label: Label = $StatusLabel
@@ -23,8 +31,8 @@ func _disconnect_player():
 		_player_node.info_changed.disconnect(refresh)
 
 func _connect_player():
-	_player_node = LobbyManager.get_player(peer_id)
-	assert(_player_node, "Player node not found for peer_id: %d" % peer_id)
+	_player_node = LobbyManager.get_player(peer_id, local_player_id)
+	assert(_player_node, "Player node not found for peer_id: %d, local_player_id: %d" % [peer_id, local_player_id])
 	_player_node.info_changed.connect(refresh)
 	refresh()
 

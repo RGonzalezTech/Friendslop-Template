@@ -6,7 +6,9 @@ extends VBoxContainer
 func _sort_children() -> void:
     var children = get_children()
     children.sort_custom(func(a, b):
-        return (a.peer_id < b.peer_id)
+        if a.peer_id != b.peer_id:
+            return a.peer_id < b.peer_id
+        return a.local_player_id < b.local_player_id
     )
     for idx in range(children.size()):
         var this_child = children[idx]

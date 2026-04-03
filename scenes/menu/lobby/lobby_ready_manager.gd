@@ -7,21 +7,21 @@ extends Node
 		player_ready_states = value
 		_update_all_ready_status.call_deferred()
 
-## Maps peer_id to the player row node (for updating Ready status)
-var _spawned_rows: Dictionary[int, LobbyPlayerRow] = {}
-## Maps spawn_id to peer_id (for cleaning up rows)
-var _spawned_sids: Dictionary[String, int] = {}
+## Maps peer_id -> Array of LobbyPlayerRow (one per local player on that peer)
+var _spawned_rows: Dictionary[int, Array] = {}
+## Maps spawn_id -> LobbyPlayerRow (for targeted removal on despawn)
+var _spawned_sids: Dictionary[String, LobbyPlayerRow] = {}
 
 #region UI Updates
 
 func _update_all_ready_status() -> void:
 	for peer_id in _spawned_rows.keys():
-		var is_ready = player_ready_states.get(peer_id)
-		var this_row = _spawned_rows[peer_id]
-		if not this_row:
-			continue
-		assert(this_row.has_method("set_ready_status"), "Player row does not have set_ready_status method")
-		this_row.set_ready_status(is_ready)
+		var is_ready = player_ready_states.get(peer_id, false)
+		for row in _spawned_rows[peer_id]:
+			if not row:
+				continue
+			assert(row.has_method("set_ready_status"), "Player row does not have set_ready_status method")
+			row.set_ready_status(is_ready)
 
 ## Refreshes the ready states of all players via MultiplayerSynchronizer
 ## this is a bit of a hack, but it works to trigger the sync of the ready states
@@ -37,21 +37,33 @@ func _on_handshake_spawner_spawned(node: LobbyPlayerRow, request: SpawnRequest) 
 	var peer_id = request.params.get("peer_id")
 	assert(peer_id, "Spawn request does not contain peer_id")
 
-	# For updating ready status
-	_spawned_rows[peer_id] = node
-	# For cleaning up rows
-	_spawned_sids[request.spawn_id] = peer_id
-	player_ready_states[peer_id] = false
+	# Track row by spawn_id for targeted cleanup
+	_spawned_sids[request.spawn_id] = node
+
+	# Add to the per-peer row array
+	if not _spawned_rows.has(peer_id):
+		_spawned_rows[peer_id] = []
+		# Only initialize ready state on the first row for this peer,
+		# so a guest joining doesn't reset a peer that's already ready.
+		player_ready_states[peer_id] = false
+
+	_spawned_rows[peer_id].append(node)
 	_trigger_ready_updates()
 
 ## Called when a player row is despawned
 func _on_handshake_spawner_despawned(s_id: String) -> void:
-	var peer_id = _spawned_sids.get(s_id)
-	if not peer_id:
+	var row: LobbyPlayerRow = _spawned_sids.get(s_id)
+	if not row:
 		return
 	_spawned_sids.erase(s_id)
-	_spawned_rows.erase(peer_id)
-	player_ready_states.erase(peer_id)
+
+	var peer_id := row.peer_id
+	if _spawned_rows.has(peer_id):
+		_spawned_rows[peer_id].erase(row)
+		if _spawned_rows[peer_id].is_empty():
+			_spawned_rows.erase(peer_id)
+			player_ready_states.erase(peer_id)
+
 	_trigger_ready_updates()
 
 #endregion
@@ -72,3 +84,4 @@ func _request_ready_toggle() -> void:
 	_trigger_ready_updates()
 
 #endregion
+
