@@ -260,12 +260,11 @@ func _on_scene_load_failed(reason: String) -> void:
 func _on_scene_changed() -> void:
 	scene_manager.start_transition_to(current_lobby.active_scene_path)
 
-
 # When the scene manager reports its loading status, we can update the local player's status.
 func _on_scene_loading_update(is_loading: bool) -> void:
 	const LOADING = LobbyPlayer.Status.SCENE_LOADING
 	const SYNCED = LobbyPlayer.Status.SYNCED
-	update_player_status(LOADING if is_loading else SYNCED)
+	update_all_local_player_status(LOADING if is_loading else SYNCED)
 
 #endregion
 

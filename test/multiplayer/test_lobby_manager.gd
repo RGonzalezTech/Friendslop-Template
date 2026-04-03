@@ -397,6 +397,26 @@ func test_scene_load_failed_returns_to_menu_with_reason():
 	
 	assert_eq(_lobby_manager.disconnection_reason, reason, "Reason should be stored")
 	assert_called(_mock_scene_manager.go_to_main_menu)
+	
+func test_updates_player_status_on_scene_loading_update():
+	var lp1 = _add_player(1, DEFAULT_LOCAL_PLAYER_ID)
+	var lp2 = _add_player(1, 1) # Local guest player
+	var rp1 = _add_player(2, 0) # Remote player 1
+	var rp2 = _add_player(3, 0) # Remote player 2
+	
+	# Simulate transition start (is_loading = true)
+	_lobby_manager._on_scene_loading_update(true)
+	assert_called(lp1.set_status.bind(LobbyPlayer.Status.SCENE_LOADING))
+	assert_called(lp2.set_status.bind(LobbyPlayer.Status.SCENE_LOADING))
+	assert_not_called(rp1.set_status)
+	assert_not_called(rp2.set_status)
+	
+	# Simulate transition end (is_loading = false)
+	_lobby_manager._on_scene_loading_update(false)
+	assert_called(lp1.set_status.bind(LobbyPlayer.Status.SYNCED))
+	assert_called(lp2.set_status.bind(LobbyPlayer.Status.SYNCED))
+	assert_not_called(rp1.set_status)
+	assert_not_called(rp2.set_status)
 
 #endregion
 
