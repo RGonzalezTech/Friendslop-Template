@@ -329,6 +329,46 @@ func test_spawn_and_remove_lobby_player_on_peer_connection():
 	await wait_process_frames(2) # queue_free
 	assert_null(_lobby_manager.get_player(peer_id), "Player node should be removed for disconnected peer")
 
+func test_update_player_status_updates_found_local_players():
+	# Base player (It's a mocked player)
+	var new_player = _add_player(1, 0)
+
+	# Update the status on a guest player (fails silently)
+	_lobby_manager.update_player_status(LobbyPlayer.Status.SYNCED, 1)
+	assert_not_called(new_player.set_status)
+
+	# Update status on the host player (succeeds)
+	_lobby_manager.update_player_status(LobbyPlayer.Status.SYNCED, 0)
+	assert_called(new_player.set_status.bind(LobbyPlayer.Status.SYNCED))
+
+	# Now that it exists, the status update should go through
+	var second_player = _add_player(1, 1)
+	_lobby_manager.update_player_status(LobbyPlayer.Status.SYNCED, 1)
+	assert_called(second_player.set_status.bind(LobbyPlayer.Status.SYNCED))
+
+func test_update_all_local_player_status_updates_all_found_local_players():
+	var p1 = _add_player(1, 0)
+	var p2 = _add_player(1, 1)
+	var p3 = _add_player(2, 0) # Remote player
+
+	_lobby_manager.update_all_local_player_status(LobbyPlayer.Status.SYNCED)
+	# Both should have been called
+	assert_called(p1.set_status.bind(LobbyPlayer.Status.SYNCED))
+	assert_called(p2.set_status.bind(LobbyPlayer.Status.SYNCED))
+	# Third should _not_ have been called
+	assert_not_called(p3.set_status)
+
+func test_update_player_name_only_updates_host():
+	var p1 = _add_player(1, 0)
+	var p2 = _add_player(1, 1)
+	var p3 = _add_player(2, 0) # Remote player
+
+	_lobby_manager.update_player_name("New Name")
+	# Host player name delegation is tested on LobbyPlayer
+	assert_called(p1.update_player_name.bind("New Name"))
+	assert_not_called(p2.update_player_name)
+	assert_not_called(p3.update_player_name)
+
 #endregion
 
 #region Scene Management

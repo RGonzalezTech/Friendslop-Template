@@ -206,8 +206,8 @@ func get_all_player_peer_ids() -> Array[int]:
 	return _players_by_peer_and_local_id.keys()
 
 ## Requests a name update. Server will validate and sync via RPC.
-func update_player_name(new_name: String, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -> void:
-	var player_node = get_local_player(local_player_id)
+func update_player_name(new_name: String) -> void:
+	var player_node = get_local_player(DEFAULT_LOCAL_PLAYER_ID)
 	if player_node:
 		player_node.update_player_name.rpc_id(1, new_name)
 
@@ -216,6 +216,13 @@ func update_player_status(new_status: LobbyPlayer.Status, local_player_id: int =
 	var player_node = get_local_player(local_player_id)
 	if player_node:
 		player_node.set_status.rpc_id(1, new_status)
+
+## For each [LobbyPlayer] spawned for our peer, we request that it is
+## updated to the given status.
+func update_all_local_player_status(new_status: LobbyPlayer.Status) -> void:
+	var local_players = get_local_players()
+	for local_player_id in local_players.keys():
+		update_player_status(new_status, local_player_id)
 
 #endregion
 
