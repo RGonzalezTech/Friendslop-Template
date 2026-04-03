@@ -96,3 +96,87 @@ func test_parent_lobby_player_info_relay():
 	# Verify B no longer propagates
 	parent_b.info_changed.emit()
 	assert_signal_emit_count(_lobby_player.info_changed, 5, "Should NOT emit info_changed when old parent B emits it")
+
+class TestLobbyPlayerNetworkStatus:
+	extends BaseNetworkGutTest
+
+	var _client_peer_id: int = -1
+	var server_lobby_player: LobbyPlayer
+	var client_lobby_player: LobbyPlayer
+
+	func before_each():
+		# Create server's copy of the node tree
+		server_lobby_player = LobbyPlayer.new()
+		server_lobby_player.peer_id = 1
+		server_lobby_player.local_player_id = 0
+		_server_node.add_child(server_lobby_player)
+		# Spin up a server
+		setup_server()
+
+		# Create client's copy of the node tree
+		client_lobby_player = LobbyPlayer.new()
+		client_lobby_player.peer_id = 1
+		client_lobby_player.local_player_id = 0
+		_client_node.add_child(client_lobby_player)
+		# Connect to the server
+		setup_client()
+
+		await wait_seconds(0.2) # wait for network connection
+		_client_peer_id = client_lobby_player.multiplayer.get_unique_id()
+		# This lobby player represents the client. 
+		# Synchronized both client & server node trees
+		server_lobby_player.peer_id = _client_peer_id
+		client_lobby_player.peer_id = _client_peer_id
+	
+	func after_each():
+		# Shut down servers
+		teardown_client()
+		teardown_server()
+	
+		# Remove if still present
+		if is_instance_valid(client_lobby_player):
+			client_lobby_player.free()
+		if is_instance_valid(server_lobby_player):
+			server_lobby_player.free()
+
+	func test_set_status_is_server_side_and_peer_authenticated():
+		assert_eq(server_lobby_player.status, LobbyPlayer.Status.CONNECTING, "LobbyPlayer should start with Connecting")
+
+		# The server cannot send itself the request because the LobbyPlayer
+		# does not represent the server.
+		server_lobby_player.set_status.rpc_id(1, LobbyPlayer.Status.IN_GAME)
+		await wait_seconds(0.2) # Allow network frames to pass
+		assert_eq(server_lobby_player.status, LobbyPlayer.Status.CONNECTING, "Server copy should not change")
+
+		# The client should send the request to the server
+		# And this should go through because the LobbyPlayer represents the client
+		client_lobby_player.set_status.rpc_id(1, LobbyPlayer.Status.IN_GAME)
+		await wait_seconds(0.2) # Allow network frames to pass
+		assert_eq(server_lobby_player.status, LobbyPlayer.Status.IN_GAME, "Server copy should change")
+
+	func test_set_status_emits_status_changed():
+		watch_signals(server_lobby_player)
+		assert_signal_not_emitted(server_lobby_player.status_changed)
+		
+		server_lobby_player.set_status.rpc_id(1, LobbyPlayer.Status.IN_GAME)
+		await wait_seconds(0.2) # Allow network frames to pass
+		assert_signal_not_emitted(server_lobby_player.status_changed, "Server cannot request on behalf of user")
+
+		client_lobby_player.set_status.rpc_id(1, LobbyPlayer.Status.IN_GAME)
+		await wait_seconds(0.2) # Allow network frames to pass
+		assert_signal_emitted_with_parameters(server_lobby_player.status_changed, [LobbyPlayer.Status.IN_GAME])
+
+	func test_update_player_name_runs_update_player_name_rpc_on_host():
+		watch_signals(server_lobby_player)
+		var new_name = "New Name"
+		
+		# Server cannot update client's name directly via RPC (sender must be peer_id)
+		server_lobby_player.update_player_name.rpc_id(1, new_name)
+		await wait_seconds(0.2) # Allow network frames to pass
+		assert_ne(server_lobby_player.player_name, new_name, "Server should not be able to update client's name via RPC sender check")
+		
+		# Client should send the request to the server
+		client_lobby_player.update_player_name.rpc_id(1, new_name)
+		await wait_seconds(0.2) # Allow network frames to pass
+		assert_eq(server_lobby_player.player_name, new_name, "Server copy should change when client calls RPC")
+		assert_signal_emitted(server_lobby_player.info_changed)

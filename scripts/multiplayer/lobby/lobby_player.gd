@@ -137,8 +137,9 @@ func set_status(new_status: Status) -> void:
 		return
 
 	# A player can only update their own status
-	if multiplayer.get_remote_sender_id() != peer_id:
-		push_warning("Only the player can update their own status")
+	var remote_sender_id = multiplayer.get_remote_sender_id()
+	if remote_sender_id != peer_id:
+		push_warning("Only the player %d can update their own status, not %d" % [peer_id, remote_sender_id])
 		return
 
 	status = new_status
