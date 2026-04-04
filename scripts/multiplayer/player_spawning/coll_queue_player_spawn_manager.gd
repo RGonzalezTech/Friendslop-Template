@@ -8,8 +8,8 @@ extends BasePlayerSpawnManager
 ## The parent node for the spawn points consisting of either [Area2D] or [Area3D] nodes.
 @export var spawn_points: Node
 
-## Queue of peer_id waiting to be spawned
-var _spawn_queue: Array[int] = []
+## Queue of [peer_id, local_player_id] tuples waiting to be spawned
+var _spawn_queue: Array[Array] = []
 
 ## Timer to retry spawning remaining players
 var _retry_timer: Timer
@@ -24,20 +24,31 @@ func _ready() -> void:
 	assert(spawn_points.get_child_count() > 0, "No spawn points available")
 
 ## [OVERRIDE] Rather than instantly spawn players, we add them to the queue to try to spawn every N seconds
-func _on_player_ready_for_gameplay(peer_id: int) -> void:
-	if _spawned_players.has(peer_id) or peer_id in _spawn_queue:
+func _on_player_ready_for_gameplay(peer_id: int, local_player_id: int) -> void:
+	var players_for_peer = _spawned_players.get(peer_id, {})
+	if players_for_peer.has(local_player_id):
 		return
 
-	_spawn_queue.append(peer_id)
+	# Check if already queued
+	for entry in _spawn_queue:
+		if entry[0] == peer_id and entry[1] == local_player_id:
+			return
+
+	_spawn_queue.append([peer_id, local_player_id])
 	_retry_timer.start()
 
 ## A player has left the lobby.
-func _on_player_left(peer_id: int) -> void:
-	# do the usual
-	super (peer_id)
+func _on_player_left(peer_id: int, local_player_id: int) -> void:
+	# Do the usual
+	super (peer_id, local_player_id)
 
 	# And also, remove from the spawn_queue if they haven't spawned yet
-	var index = _spawn_queue.find(peer_id)
+	var index = -1
+	for i in range(_spawn_queue.size()):
+		if _spawn_queue[i][0] == peer_id and _spawn_queue[i][1] == local_player_id:
+			index = i
+			break
+
 	if index != -1:
 		_spawn_queue.remove_at(index)
 		if _spawn_queue.is_empty():
@@ -66,8 +77,8 @@ func _try_spawn() -> void:
 			continue
 		
 		# Else: Spawn next player in queue here
-		var peer_id = _spawn_queue.pop_front()
-		var params = _make_spawn_params(peer_id, this_spawn_point)
+		var entry = _spawn_queue.pop_front()
+		var params = _make_spawn_params(entry[0], entry[1], this_spawn_point)
 		_validate_params(params)
 		handshake_spawner.spawn(player_spawner_label, params)
 
@@ -75,9 +86,10 @@ func _try_spawn() -> void:
 	if _spawn_queue.is_empty():
 		_retry_timer.stop()
 
-func _make_spawn_params(peer_id: int, spawn_point: Node) -> Dictionary:
+func _make_spawn_params(peer_id: int, local_player_id: int, spawn_point: Node) -> Dictionary:
 	return {
 		"peer_id": peer_id,
+		"local_player_id": local_player_id,
 		"position": spawn_point.position,
 	}
 

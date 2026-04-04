@@ -8,7 +8,7 @@ class MockPlayerSpawnManager:
 	
 	var _mock_spawn_params: Dictionary = {}
 	
-	func _get_spawn_params(_peer_id: int) -> Dictionary:
+	func _get_spawn_params(_peer_id: int, _local_player_id: int) -> Dictionary:
 		return _mock_spawn_params
 	
 	func set_mock_spawn_params(params: Dictionary) -> void:
@@ -71,9 +71,9 @@ func after_each():
 
 # --- Helpers ---
 
-func _simulate_player_ready_for_spawn(peer_id: int, spawn_params: Dictionary) -> void:
+func _simulate_player_ready_for_spawn(peer_id: int, local_player_id: int, spawn_params: Dictionary) -> void:
 	_spawn_manager.set_mock_spawn_params(spawn_params)
-	_level_root.player_ready_for_gameplay.emit(peer_id)
+	_level_root.player_ready_for_gameplay.emit(peer_id, local_player_id)
 
 # --- Tests ---
 
@@ -83,36 +83,40 @@ func test_initialization():
 
 func test_spawn_player_on_ready_signal():
 	var peer_id = 123
-	var spawn_params = {"pos": Vector2(100, 100), "peer_id": peer_id}
+	var local_player_id = 0
+	var spawn_params = {"pos": Vector2(100, 100), "peer_id": peer_id, "local_player_id": local_player_id}
 	
-	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	_simulate_player_ready_for_spawn(peer_id, local_player_id, spawn_params)
 	
 	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 1, "A player should have been spawned in the container")
 	var spawned_node = _spawn_container.get_child(0)
 	assert_eq(spawned_node.get_meta("peer_id"), peer_id, "The spawned node should have the correct peer_id metadata")
+	assert_eq(spawned_node.get_meta("local_player_id"), local_player_id, "The spawned node should have the correct local_player_id metadata")
 
 func test_spawn_player_only_once():
 	var peer_id = 456
-	var spawn_params = {"pos": Vector2(200, 200), "peer_id": peer_id}
+	var local_player_id = 0
+	var spawn_params = {"pos": Vector2(200, 200), "peer_id": peer_id, "local_player_id": local_player_id}
 	
-	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	_simulate_player_ready_for_spawn(peer_id, local_player_id, spawn_params)
 	await wait_process_frames(2)
 	
-	_level_root.player_ready_for_gameplay.emit(peer_id)
+	_level_root.player_ready_for_gameplay.emit(peer_id, local_player_id)
 	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 1, "Player should only be spawned once")
 
 func test_player_left_despawns():
 	var peer_id = 789
-	var spawn_params = {"peer_id": peer_id}
-	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	var local_player_id = 0
+	var spawn_params = {"peer_id": peer_id, "local_player_id": local_player_id}
+	_simulate_player_ready_for_spawn(peer_id, local_player_id, spawn_params)
 	await wait_process_frames(2)
 	assert_eq(_spawn_container.get_child_count(), 1, "Player should be spawned initially")
 	
-	LobbyManager.player_left.emit(peer_id)
+	LobbyManager.player_left.emit(peer_id, local_player_id)
 	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 0, "Player should be despawned after leaving")
@@ -121,9 +125,10 @@ func test_can_remove_same_peer_id_multiple_times_without_crashing():
 	## This test verifies that removing a player multiple times (first via HandshakeSpawner
 	## despawn, then via player_left signal) does not cause a crash and keeps the state clean.
 	var peer_id = 101
-	var spawn_params = {"peer_id": peer_id}
+	var local_player_id = 0
+	var spawn_params = {"peer_id": peer_id, "local_player_id": local_player_id}
 	
-	_simulate_player_ready_for_spawn(peer_id, spawn_params)
+	_simulate_player_ready_for_spawn(peer_id, local_player_id, spawn_params)
 	await wait_process_frames(2)
 	
 	var spawned_node = _spawn_container.get_child(0)
@@ -134,7 +139,52 @@ func test_can_remove_same_peer_id_multiple_times_without_crashing():
 	
 	assert_eq(_spawn_container.get_child_count(), 0, "Node should be despawned from the scene tree")
 	
-	LobbyManager.player_left.emit(peer_id)
+	LobbyManager.player_left.emit(peer_id, local_player_id)
 	await wait_process_frames(2)
 	
 	assert_eq(_spawn_container.get_child_count(), 0, "Container should remain empty after player_left signal")
+
+## New: Two local players from the same peer are tracked independently
+func test_two_local_players_same_peer_spawn_independently():
+	var peer_id = 200
+	var spawn_params_0 = {"peer_id": peer_id, "local_player_id": 0}
+	var spawn_params_1 = {"peer_id": peer_id, "local_player_id": 1}
+	
+	_simulate_player_ready_for_spawn(peer_id, 0, spawn_params_0)
+	await wait_process_frames(2)
+	
+	_simulate_player_ready_for_spawn(peer_id, 1, spawn_params_1)
+	await wait_process_frames(2)
+	
+	assert_eq(_spawn_container.get_child_count(), 2, "Both local players should be spawned")
+
+## New: Only the correct local player is removed when one leaves
+func test_player_left_only_removes_correct_local_player():
+	var peer_id = 300
+	var spawn_params_0 = {"peer_id": peer_id, "local_player_id": 0}
+	var spawn_params_1 = {"peer_id": peer_id, "local_player_id": 1}
+	
+	_simulate_player_ready_for_spawn(peer_id, 0, spawn_params_0)
+	await wait_process_frames(2)
+	_simulate_player_ready_for_spawn(peer_id, 1, spawn_params_1)
+	await wait_process_frames(2)
+	
+	assert_eq(_spawn_container.get_child_count(), 2, "Both players should be spawned")
+	
+	LobbyManager.player_left.emit(peer_id, 0)
+	await wait_process_frames(2)
+	
+	assert_eq(_spawn_container.get_child_count(), 1, "Only one player should remain")
+
+## New: Peer entry is cleaned up only after all local players leave
+func test_peer_dict_cleaned_up_after_all_local_players_leave():
+	var peer_id = 400
+	var spawn_params_0 = {"peer_id": peer_id, "local_player_id": 0}
+	
+	_simulate_player_ready_for_spawn(peer_id, 0, spawn_params_0)
+	await wait_process_frames(2)
+	
+	LobbyManager.player_left.emit(peer_id, 0)
+	await wait_process_frames(2)
+	
+	assert_false(_spawn_manager._spawned_players.has(peer_id), "Peer entry should be cleaned up after all local players leave")
