@@ -9,7 +9,7 @@ The system uses a **Strategy Pattern** to determine how and where players appear
 - **The Manager (`BasePlayerSpawnManager`)**: An abstract base class that listens for gameplay readiness from [NetworkLevelRoot](../../core/README.md) and orchestrates the spawn/despawn process on the [HandshakeSpawner](../replication/README.md).
 - **The Spawner ([`HandshakeSpawner`](../replication/README.md))**: Performs the actual replication of the player node through an abstract `SpawnableResource` interface.
 - **Strategies**: Specific implementations that define the "where":
-    - `SimplePlayerSpawnManager`: Passes only the `peer_id`. Useful when the player scene handles its own placement.
+    - `SimplePlayerSpawnManager`: Passes the `peer_id` and `local_player_id`. Useful when the player scene handles its own placement.
     - `CollQueuePlayerSpawnManager`: Uses `Area2D` and `Area3D` nodes as spawn points, and waits until space has cleared before attempting to spawn.
 
 ## 🔄 Spawning Flow
@@ -38,20 +38,20 @@ sequenceDiagram
     deactivate Lobby
     
     activate Level
-    Level->>Manager: player_ready_for_gameplay(peer_id)
+    Level->>Manager: player_ready_for_gameplay(peer_id, local_player_id)
     deactivate Level
     end
 
     rect rgb(30, 40, 30)
     Note over Manager, Spawner: Phase 2: Spawning
     activate Manager
-    Manager->>Manager: _get_spawn_params(peer_id)
+    Manager->>Manager: _get_spawn_params(peer_id, local_player_id)
     Manager->>Spawner: spawn(label, params)
     activate Spawner
     Spawner-->>All: Sync instantiation
     Spawner->>Manager: spawned(node, request)
     deactivate Spawner
-    Manager->>Manager: Track peer_id -> spawn_id
+    Manager->>Manager: Track [peer_id, local_player_id] -> spawn_id
     deactivate Manager
     end
 
@@ -60,7 +60,7 @@ sequenceDiagram
     Peer->>Lobby: Disconnects
     activate Lobby
     Lobby->>Lobby: Server removes LobbyPlayer
-    Lobby->>Manager: player_left(peer_id)
+    Lobby->>Manager: player_left(peer_id, local_player_id)
     deactivate Lobby
     
     activate Manager
@@ -69,7 +69,7 @@ sequenceDiagram
     Spawner-->>All: Sync removal
     Spawner->>Manager: despawned(spawn_id)
     deactivate Spawner
-    Manager->>Manager: Untrack peer_id
+    Manager->>Manager: Untrack [peer_id, local_player_id]
     deactivate Manager
     end
 ```
@@ -78,17 +78,18 @@ sequenceDiagram
 
 ### `BasePlayerSpawnManager` (Abstract)
 The "Brain" of the operation. It connects to [`NetworkLevelRoot`](../../core/README.md) and [`LobbyManager`](../lobby/README.md) to handle player entry and exit.
-- **Signal**: `player_ready_for_gameplay` triggers the spawn.
-- **Cleanup**: Automatically despawns the player's network object when they leave the lobby.
+- **Signal**: `player_ready_for_gameplay(peer_id, local_player_id)` triggers the spawn.
+- **Cleanup**: Automatically despawns the player's network object when they leave the lobby via `player_left(peer_id, local_player_id)`.
+- **Tracking**: Uses a nested dictionary `{ peer_id: { local_player_id: SpawnRequest } }` to support multiple local players per peer (e.g., split-screen).
 
 ### `SimplePlayerSpawnManager`
 Minimalist approach.
-- **Logic**: Only provides the `peer_id` to the spawner.
+- **Logic**: Only provides the `peer_id` and `local_player_id` to the spawner.
 - **Use Case**: When players spawn at a fixed location or if the player scene contains its own entry logic.
 
 ### `CollQueuePlayerSpawnManager`
 Collision-aware spawning using a retry queue.
-- **Logic**: Iterates through `Area2D` or `Area3D` nodes to find a clear spot using `has_overlapping_bodies()`. If all points are blocked, players are queued and retried every 200ms automatically.
+- **Logic**: Iterates through `Area2D` or `Area3D` nodes to find a clear spot using `has_overlapping_bodies()`. If all points are blocked, players are queued and retried every 200ms automatically. The queue stores `[peer_id, local_player_id]` tuples so multiple local players from the same peer are tracked independently.
 - **Use Case**: Standard 2D or 3D gameplay where players can collide
 
 ## 🔌 Integration
@@ -102,5 +103,5 @@ Collision-aware spawning using a retry queue.
 
 To create a new spawning rule (e.g., Team-based spawning, Distance-based spawning):
 1.  Extend `BasePlayerSpawnManager`.
-2.  Override `func _get_spawn_params(peer_id: int) -> Dictionary`.
-3.  Return a dictionary containing at least `"peer_id": peer_id`.
+2.  Override `func _get_spawn_params(peer_id: int, local_player_id: int) -> Dictionary`.
+3.  Return a dictionary containing at least `"peer_id": peer_id` and `"local_player_id": local_player_id`.

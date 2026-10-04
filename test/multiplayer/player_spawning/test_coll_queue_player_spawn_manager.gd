@@ -78,16 +78,18 @@ func test_spawn_when_point_is_free() -> void:
     _spawn_points_arr[0].can_spawn = true
     
     var peer_id = 42
-    mock_network_root.player_ready_for_gameplay.emit(peer_id)
+    var local_player_id = 0
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, local_player_id)
     assert_eq(spawn_manager._spawn_queue.size(), 1, "Must have 1 in queue")
+    assert_eq(spawn_manager._spawn_queue[0], [peer_id, local_player_id], "Queue entry should be a [peer_id, local_player_id] tuple")
     
     # Needs to wait a frame for call_deferred
     await wait_seconds(0.25)
 
     # Should've tried to spawn at pos 0
-    # assert_called(mock_handshake_spawner.spawn)
     assert_called(mock_handshake_spawner.spawn.bind("player", {
         "peer_id": peer_id,
+        "local_player_id": local_player_id,
         "position": _spawn_points_arr[0].position
     }))
     assert_eq(spawn_manager._spawn_queue.size(), 0, "Queue should be empty")
@@ -95,13 +97,14 @@ func test_spawn_when_point_is_free() -> void:
 func test_queue_when_points_are_occupied() -> void:
     # All points occupied by default
     var peer_id = 42
-    mock_network_root.player_ready_for_gameplay.emit(peer_id)
+    var local_player_id = 0
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, local_player_id)
     
     # Needs to wait a second for call_deferred
     await wait_seconds(0.25)
     
     assert_not_called(mock_handshake_spawner.spawn)
-    assert_eq(spawn_manager._spawn_queue, [peer_id], "Spawn queue should have the peer_id")
+    assert_eq(spawn_manager._spawn_queue, [[peer_id, local_player_id]], "Spawn queue should have [peer_id, local_player_id] tuple")
     assert_false(spawn_manager._retry_timer.is_stopped(), "Timer should be running")
 
 func test_multiple_spawns_across_available_points() -> void:
@@ -111,13 +114,14 @@ func test_multiple_spawns_across_available_points() -> void:
     _spawn_points_arr[2].can_spawn = true
 
     # Simulate Peer 1 connecting
-    mock_network_root.player_ready_for_gameplay.emit(1)
+    mock_network_root.player_ready_for_gameplay.emit(1, 0)
     await wait_seconds(0.25)
     
     # Peer 1 should spawn at point 0
     assert_called_count(mock_handshake_spawner.spawn, 1)
     assert_called(mock_handshake_spawner.spawn.bind("player", {
         "peer_id": 1,
+        "local_player_id": 0,
         "position": _spawn_points_arr[0].position
     }))
     
@@ -125,13 +129,14 @@ func test_multiple_spawns_across_available_points() -> void:
     _spawn_points_arr[0].can_spawn = false
 
     # Simulate Peer 2 connecting
-    mock_network_root.player_ready_for_gameplay.emit(2)
+    mock_network_root.player_ready_for_gameplay.emit(2, 0)
     await wait_seconds(0.25)
 
     # Peer 2 should spawn at point 1
     assert_called_count(mock_handshake_spawner.spawn, 2)
     assert_called(mock_handshake_spawner.spawn.bind("player", {
         "peer_id": 2,
+        "local_player_id": 0,
         "position": _spawn_points_arr[1].position
     }))
     
@@ -139,13 +144,14 @@ func test_multiple_spawns_across_available_points() -> void:
     _spawn_points_arr[1].can_spawn = false
 
     # Simulate Peer 3 connecting
-    mock_network_root.player_ready_for_gameplay.emit(3)
+    mock_network_root.player_ready_for_gameplay.emit(3, 0)
     await wait_seconds(0.25)
 
     # Peer 3 should spawn at point 2
     assert_called_count(mock_handshake_spawner.spawn, 3)
     assert_called(mock_handshake_spawner.spawn.bind("player", {
         "peer_id": 3,
+        "local_player_id": 0,
         "position": _spawn_points_arr[2].position
     }))
     
@@ -153,36 +159,37 @@ func test_multiple_spawns_across_available_points() -> void:
     _spawn_points_arr[2].can_spawn = false
 
     # Simulate Peer 4 connecting (queue test)
-    mock_network_root.player_ready_for_gameplay.emit(4)
+    mock_network_root.player_ready_for_gameplay.emit(4, 0)
     await wait_seconds(0.25)
 
     # Peer 4 should not have spawned and should be in the queue
     assert_called_count(mock_handshake_spawner.spawn, 3)
-    assert_eq(spawn_manager._spawn_queue, [4], "One player should remain in queue (ID 4)")
+    assert_eq(spawn_manager._spawn_queue, [[4, 0]], "One player should remain in queue ([4, 0])")
 
 func test_doesnt_queue_if_already_spawned_or_queued() -> void:
-    # Mock spawned player
-    spawn_manager._spawned_players[42] = SpawnRequest.new()
+    # Mock spawned player (nested: peer 42 -> local_player 0 -> SpawnRequest)
+    spawn_manager._spawned_players[42] = {0: SpawnRequest.new()}
     
-    mock_network_root.player_ready_for_gameplay.emit(42)
+    mock_network_root.player_ready_for_gameplay.emit(42, 0)
     assert_eq(spawn_manager._spawn_queue.size(), 0, "Should not queue if already spawned")
     
-    # Remove from spawned, add to queue
+    # Remove from spawned, add to queue as tuple
     spawn_manager._spawned_players.erase(42)
-    spawn_manager._spawn_queue.append(100)
+    spawn_manager._spawn_queue.append([100, 0])
     
-    mock_network_root.player_ready_for_gameplay.emit(100)
+    mock_network_root.player_ready_for_gameplay.emit(100, 0)
     assert_eq(spawn_manager._spawn_queue.size(), 1, "Should not queue if already in queue")
 
 func test_remove_from_queue_when_player_leaves() -> void:
     # 1. Trigger player ready for gameplay
     var peer_id = 42
-    mock_network_root.player_ready_for_gameplay.emit(peer_id)
+    var local_player_id = 0
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, local_player_id)
     assert_eq(spawn_manager._spawn_queue.size(), 1, "Must have 1 in queue")
     assert_false(spawn_manager._retry_timer.is_stopped(), "Timer should be running")
 
     # 2. Trigger player leave
-    LobbyManager.player_left.emit(peer_id)
+    LobbyManager.player_left.emit(peer_id, local_player_id)
 
     # 3. Verify player is removed from queue and timer is stopped
     assert_eq(spawn_manager._spawn_queue.size(), 0, "Queue should be empty")
@@ -191,3 +198,25 @@ func test_remove_from_queue_when_player_leaves() -> void:
     # 4. Wait a few frames and verify player was NEVER spawned
     await wait_seconds(0.25)
     assert_not_called(mock_handshake_spawner.spawn)
+
+## New: Two local players from the same peer are queued as separate entries
+func test_two_local_players_same_peer_queued_independently() -> void:
+    var peer_id = 10
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, 0)
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, 1)
+
+    assert_eq(spawn_manager._spawn_queue.size(), 2, "Both local players should be queued")
+    assert_eq(spawn_manager._spawn_queue[0], [peer_id, 0])
+    assert_eq(spawn_manager._spawn_queue[1], [peer_id, 1])
+
+## New: Leaving one local player doesn't remove the other from the queue
+func test_only_correct_local_player_removed_from_queue() -> void:
+    var peer_id = 20
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, 0)
+    mock_network_root.player_ready_for_gameplay.emit(peer_id, 1)
+    assert_eq(spawn_manager._spawn_queue.size(), 2)
+
+    LobbyManager.player_left.emit(peer_id, 0)
+
+    assert_eq(spawn_manager._spawn_queue.size(), 1, "Only the leaving local player should be removed")
+    assert_eq(spawn_manager._spawn_queue[0], [peer_id, 1])
