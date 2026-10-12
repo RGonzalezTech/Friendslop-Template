@@ -27,6 +27,9 @@ signal player_left(peer_id: int, local_player_id: int)
 ## Emitted when a player's status changes.
 signal player_status_update(peer_id: int, local_player_id: int, status: LobbyPlayer.Status)
 
+## Emitted on the client when the server rejects an add-player request.
+signal reject_add_player(local_player_id: int, reason: String)
+
 var current_lobby: Lobby
 var _lobby_player_spawner: MultiplayerSpawner
 var _lobby_players_container: Node
@@ -122,6 +125,11 @@ func _add_player(peer_id: int, local_player_id: int = DEFAULT_LOCAL_PLAYER_ID) -
 #endregion
 
 #region Player API
+
+## Returns true if the lobby has capacity for another player.
+## Computes live from the container child count — never drifts.
+func has_room() -> bool:
+	return _lobby_players_container.get_child_count() < current_lobby.max_players
 
 ## Simply creates a [LobbyPlayer], unless [param local_player_id] is not the default value.
 ## If [param local_player_id] is not the default value, it will try to find the host player
@@ -233,8 +241,15 @@ func _on_connection_established() -> void:
 		initialize_lobby_as_host()
 
 func _on_peer_connected(peer_id: int) -> void:
-	if multiplayer.is_server():
-		_add_player(peer_id)
+	if not multiplayer.is_server():
+		return
+
+	if not has_room():
+		# Reject the connecting peer — lobby is full.
+		multiplayer.multiplayer_peer.disconnect_peer(peer_id)
+		return
+
+	_add_player(peer_id)
 
 func _on_peer_disconnected(peer_id: int) -> void:
 	if not multiplayer.is_server():
@@ -265,6 +280,58 @@ func _on_scene_loading_update(is_loading: bool) -> void:
 	const LOADING = LobbyPlayer.Status.SCENE_LOADING
 	const SYNCED = LobbyPlayer.Status.SYNCED
 	update_all_local_player_status(LOADING if is_loading else SYNCED)
+
+#endregion
+
+#region Join Request RPCs
+
+## Called by LocalCoopManager when a new local seat is detected.
+## Server validates the sender, checks capacity, and spawns a LobbyPlayer.
+@rpc("any_peer", "call_local", "reliable")
+func _request_add_player(local_player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	var peer_id := multiplayer.get_remote_sender_id()
+
+	# Check capacity
+	if not has_room():
+		_reject_add_player.rpc_id(peer_id, local_player_id, "lobby full")
+		return
+
+	# Validate: the peer must already have a "host" player (peer_id, 0)
+	# before it can add split-screen guests.
+	var host_player := get_player(peer_id, DEFAULT_LOCAL_PLAYER_ID)
+	if not host_player:
+		_reject_add_player.rpc_id(peer_id, local_player_id, "no host player for peer")
+		return
+
+	_add_player(peer_id, local_player_id)
+
+## Called by LocalCoopManager when a local seat is released.
+## Server looks up the player and frees it.
+@rpc("any_peer", "call_local", "reliable")
+func _request_remove_player(local_player_id: int) -> void:
+	if not multiplayer.is_server():
+		return
+
+	var peer_id := multiplayer.get_remote_sender_id()
+
+	# Can't remove the host player (local_player_id == 0).
+	# The host player is removed when the peer disconnects.
+	if local_player_id == DEFAULT_LOCAL_PLAYER_ID:
+		push_warning("Cannot remove the host player via _request_remove_player")
+		return
+
+	var player := get_player(peer_id, local_player_id)
+	if player:
+		player.queue_free()
+
+## Sent by the server to a specific client when _request_add_player fails.
+## LocalCoopManager listens for this to revert its binding.
+@rpc("authority", "call_local", "reliable")
+func _reject_add_player(local_player_id: int, reason: String) -> void:
+	reject_add_player.emit(local_player_id, reason)
 
 #endregion
 
