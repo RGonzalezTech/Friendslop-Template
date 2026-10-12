@@ -420,6 +420,179 @@ func test_updates_player_status_on_scene_loading_update():
 
 #endregion
 
+#region 43-lobby-join-requests: Capacity Gating
+
+func test_peer_connected_accepted_when_lobby_has_room():
+	_lobby_manager.current_lobby.max_players = 4
+
+	var peer_id = 456
+	assert_null(_lobby_manager.get_player(peer_id), "No player before connect")
+
+	_lobby_manager._on_peer_connected(peer_id)
+
+	var p = _lobby_manager.get_player(peer_id)
+	assert_not_null(p, "Player should be spawned when lobby has room")
+	await wait_process_frames(2)
+
+func test_peer_connected_rejected_when_lobby_full():
+	_lobby_manager.current_lobby.max_players = 1
+	_add_player(1, 0)  # fill the only slot
+
+	var peer_id = 789
+	_lobby_manager._on_peer_connected(peer_id)
+
+	var players = _lobby_manager.get_players(peer_id)
+	assert_eq(players.size(), 0, "No players should be spawned for rejected peer")
+
+#endregion
+
+#region 43-lobby-join-requests: _request_add_player RPC
+
+func test_request_add_player_success():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+
+	_lobby_manager._request_add_player.rpc_id(1, 1)
+	await wait_process_frames(2)
+
+	var guest = _lobby_manager.get_player(host_id, 1)
+	assert_not_null(guest, "Guest player should be spawned")
+	assert_eq(guest.local_player_id, 1, "Guest should have local_player_id=1")
+
+func test_request_add_player_rejected_when_full():
+	_lobby_manager.current_lobby.max_players = 1
+
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+
+	watch_signals(_lobby_manager)
+
+	_lobby_manager._request_add_player.rpc_id(1, 1)
+	await wait_process_frames(2)
+
+	assert_null(_lobby_manager.get_player(host_id, 1), "Guest should NOT be spawned when full")
+
+func test_request_add_player_rejected_no_host():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+
+	_lobby_manager._request_add_player.rpc_id(1, 1)
+	await wait_process_frames(2)
+
+	assert_null(_lobby_manager.get_player(host_id, 1), "Guest should NOT be spawned without host player")
+
+func test_request_add_player_guest_success():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+
+	_lobby_manager._request_add_player.rpc_id(1, 1)
+	await wait_process_frames(2)
+
+	var guest = _lobby_manager.get_player(host_id, 1)
+	assert_not_null(guest, "Guest player should be spawned")
+	assert_eq(guest.local_player_id, 1, "Guest should have local_player_id=1")
+	assert_eq(guest._parent_lobby_player, _lobby_manager.get_player(host_id, 0), "Guest should reference host as parent")
+
+#endregion
+
+#region 43-lobby-join-requests: _request_remove_player RPC
+
+func test_request_remove_player_removes_guest():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+	var guest = _add_player(host_id, 1)
+
+	var count_before = _lobby_manager._lobby_players_container.get_child_count()
+
+	_lobby_manager._request_remove_player.rpc_id(1, 1)
+	await wait_process_frames(2)
+
+	assert_null(_lobby_manager.get_player(host_id, 1), "Guest should be removed")
+	assert_eq(_lobby_manager._lobby_players_container.get_child_count(), count_before - 1, "Container should have one fewer child")
+
+func test_request_remove_player_refuses_host():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+
+	var count_before = _lobby_manager._lobby_players_container.get_child_count()
+
+	_lobby_manager._request_remove_player.rpc_id(1, 0)
+	await wait_process_frames(2)
+
+	assert_not_null(_lobby_manager.get_player(host_id, 0), "Host should NOT be removed")
+	assert_eq(_lobby_manager._lobby_players_container.get_child_count(), count_before, "Container should not change")
+
+func test_request_remove_player_nonexistent():
+	var count_before = _lobby_manager._lobby_players_container.get_child_count()
+
+	_lobby_manager._request_remove_player.rpc_id(1, 99)
+	await wait_process_frames(2)
+
+	assert_eq(_lobby_manager._lobby_players_container.get_child_count(), count_before, "Container should not change")
+
+#endregion
+
+#region 43-lobby-join-requests: has_room() / container tracking
+
+func test_has_room_when_empty():
+	assert_true(_lobby_manager.has_room(), "Should have room when container is empty")
+
+func test_has_room_when_full():
+	_lobby_manager.current_lobby.max_players = 2
+	_add_player(1, 0)
+	_add_player(2, 0)
+	assert_false(_lobby_manager.has_room(), "Should NOT have room when container equals max_players")
+
+func test_has_room_after_player_removed():
+	_lobby_manager.current_lobby.max_players = 2
+	_add_player(1, 0)
+	var p2 = _add_player(2, 0)
+	assert_false(_lobby_manager.has_room(), "Full before removal")
+
+	p2.queue_free()
+	await wait_process_frames(2)
+	assert_true(_lobby_manager.has_room(), "Should have room after player removed")
+
+func test_has_room_after_reset():
+	_lobby_manager.current_lobby.max_players = 1
+	_add_player(1, 0)
+	assert_false(_lobby_manager.has_room(), "Full before reset")
+
+	_lobby_manager.reset_lobby()
+	await wait_process_frames(2)
+	assert_true(_lobby_manager.has_room(), "Should have room after reset")
+
+func test_has_room_matches_container():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+
+	assert_eq(_lobby_manager.has_room(), _lobby_manager._lobby_players_container.get_child_count() < _lobby_manager.current_lobby.max_players,
+		"has_room should match container vs max_players initially")
+
+	_add_player(host_id, 0)
+	assert_eq(_lobby_manager.has_room(), _lobby_manager._lobby_players_container.get_child_count() < _lobby_manager.current_lobby.max_players,
+		"has_room should match container after add 1")
+
+	_add_player(host_id, 1)
+	assert_eq(_lobby_manager.has_room(), _lobby_manager._lobby_players_container.get_child_count() < _lobby_manager.current_lobby.max_players,
+		"has_room should match container after add 2")
+
+	_add_player(2, 0)
+	assert_eq(_lobby_manager.has_room(), _lobby_manager._lobby_players_container.get_child_count() < _lobby_manager.current_lobby.max_players,
+		"has_room should match container after add 3")
+
+#endregion
+
+#region 43-lobby-join-requests: _reject_add_player signal
+
+func test_reject_add_player_emits_signal():
+	watch_signals(_lobby_manager)
+
+	_lobby_manager._reject_add_player(1, "lobby full")
+	await wait_process_frames(1)
+
+	assert_signal_emitted_with_parameters(_lobby_manager.reject_add_player, [1, "lobby full"])
+
+#endregion
+
 func _add_player(peer_id: int, local_player_id: int) -> LobbyPlayer:
 	var params := [peer_id, local_player_id]
 	var lobby_player = double(LobbyPlayer).new()
