@@ -77,6 +77,45 @@ While a `peer_id` represents a network connection, a `local_player_id` represent
 - **Primary Player (`0`)**: The main player associated with the peer.
 - **Guest Player (`1+`)**: Additional local players (split-screen). Guests are linked to the Primary player on the same peer via the `_parent_lobby_player` property.
 
+#### Join Request/Response Protocol
+
+`LocalCoopManager` communicates with `LobbyManager` via three RPCs to add and remove split-screen seats. The flow is server-authoritative — clients request, the server validates and acts.
+
+**Capacity check**: `LobbyManager.has_room()` compares `_lobby_players_container.get_child_count()` against `current_lobby.max_players`. It reads the container directly rather than tracking a separate counter, so it can never drift.
+
+```mermaid
+sequenceDiagram
+    participant LCM as LocalCoopManager
+    participant LM as LobbyManager (Server)
+    participant LP as LobbyPlayer
+
+    Note over LCM, LM: Adding a guest seat
+    LCM->>LM: _request_add_player(local_id)
+    activate LM
+    alt lobby full
+        LM-->>LCM: _reject_add_player(local_id, "lobby full")
+    else no host player for peer
+        LM-->>LCM: _reject_add_player(local_id, "no host player for peer")
+    else success
+        LM->>LM: _add_player(peer_id, local_id)
+        LM->>LP: spawn LobbyPlayer
+        activate LP
+        LP-->>LM: player_joined signal
+        deactivate LP
+    end
+    deactivate LM
+
+    Note over LCM, LM: Removing a guest seat
+    LCM->>LM: _request_remove_player(local_id)
+    activate LM
+    alt local_id == 0 (host)
+        Note right of LM: Refused — host removed<br/>on peer disconnect
+    else player found
+        LM->>LP: queue_free()
+    end
+    deactivate LM
+```
+
 #### Signal Re-emission & Naming
 
 Guest players stay in sync with their Primary player through signal cascading and property resolution inside `LobbyPlayer`.
