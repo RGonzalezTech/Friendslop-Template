@@ -116,7 +116,7 @@ sequenceDiagram
     deactivate LM
 ```
 
-#### Signal Re-emission & Naming
+#### LobbyPlayer Name Inheritance
 
 Guest players stay in sync with their Primary player through signal cascading and property resolution inside `LobbyPlayer`.
 
