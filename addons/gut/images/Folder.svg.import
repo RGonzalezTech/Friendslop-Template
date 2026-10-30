@@ -3,11 +3,15 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dhvl14hls3y2j"
-valid=false
+path="res://.godot/imported/Folder.svg-caa50e6a0be9d456fd81991dfb537916.ctex"
+metadata={
+"vram_texture": false
+}
 
 [deps]
 
 source_file="res://addons/gut/images/Folder.svg"
+dest_files=["res://.godot/imported/Folder.svg-caa50e6a0be9d456fd81991dfb537916.ctex"]
 
 [params]
 
