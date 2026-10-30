@@ -353,25 +353,60 @@ class TestInit:
 	const LocalCoopManager := preload("res://scripts/input/local_coop_manager.gd")
 	const InputProvider := preload("res://scripts/input/input_provider.gd")
 
-	var _manager
+	func _build_manager(gamepad_ids: Array[int] = []) -> LocalCoopManager:
+		var mock = double(InputProvider).new()
+		stub(mock, "get_connected_joypads").to_return(gamepad_ids)
+		var mgr = LocalCoopManager.new()
+		mgr.input_provider = mock
+		add_child_autofree(mgr)
+		return mgr
 
-	func before_each() -> void:
-		# Mock InputProvider so _ready() sees two gamepads already connected
-		var mock_input = double(InputProvider).new()
-		stub(mock_input, "get_connected_joypads").to_return([0, 1])
-		_manager = LocalCoopManager.new()
-		_manager.input_provider = mock_input
-		add_child_autofree(_manager)
+	func test_ready_with_zero_gamepads() -> void:
+		var mgr = _build_manager([])
+		assert_eq(mgr.get_active_players(), 1,
+			"Only MKB when no gamepads connected at startup")
+		assert_eq(mgr.get_devices_for_player(0).size(), 1,
+			"Slot 0 should have only MKB")
+		assert_false(mgr.has_available_gamepad(),
+			"No gamepads → no available gamepad")
 
-	func test_ready_binds_startup_gamepads_to_slot_0() -> void:
-		# MKB + gamepad 0 + gamepad 1 → all on slot 0 → 3 devices, 1 active player
-		assert_eq(_manager.get_active_players(), 1,
-			"MKB + 2 gamepads all on primary slot = 1 active player")
-		assert_eq(_manager.get_devices_for_player(0).size(), 3,
+	func test_ready_with_single_gamepad() -> void:
+		var mgr = _build_manager([0])
+		assert_eq(mgr.get_active_players(), 1,
+			"MKB + 1 gamepad both on slot 0 = 1 active player")
+		assert_eq(mgr.get_devices_for_player(0).size(), 2,
+			"Slot 0 should have MKB + gamepad 0")
+		assert_true(0 in mgr.get_devices_for_player(0),
+			"Gamepad 0 should be bound to slot 0")
+		assert_true(mgr.has_available_gamepad(),
+			"Slot 0 has MKB + gamepad → available")
+
+	func test_ready_with_two_gamepads() -> void:
+		var mgr = _build_manager([0, 1])
+		assert_eq(mgr.get_active_players(), 1,
+			"All 3 devices on slot 0 = 1 active player")
+		assert_eq(mgr.get_devices_for_player(0).size(), 3,
 			"Slot 0 should have MKB + gamepad 0 + gamepad 1")
-		assert_true(0 in _manager.get_devices_for_player(0),
-			"Gamepad 0 should be in slot 0's device list")
-		assert_true(1 in _manager.get_devices_for_player(0),
-			"Gamepad 1 should be in slot 0's device list")
-		assert_true(_manager.has_available_gamepad(),
-			"Slot 0 has MKB + gamepads → available gamepad")
+		assert_true(0 in mgr.get_devices_for_player(0))
+		assert_true(1 in mgr.get_devices_for_player(0))
+		assert_true(mgr.has_available_gamepad())
+
+	func test_ready_mkb_always_bound_to_slot_0() -> void:
+		# Regardless of how many gamepads are connected, MKB stays on slot 0
+		var mgr = _build_manager([0, 1, 2])
+		assert_eq(mgr.get_player_for_device(LocalCoopManager.MKB), 0,
+			"MKB should be on slot 0 regardless of gamepad count")
+		assert_true(LocalCoopManager.MKB in mgr.get_devices_for_player(0),
+			"MKB should appear in slot 0's device list")
+
+	func test_ready_gamepads_do_not_activate_other_slots() -> void:
+		# All startup gamepads bind to PRIMARY_SLOT (0) — never leak into slot 1+
+		var mgr = _build_manager([0, 1, 2])
+		assert_eq(mgr.get_active_players(), 1,
+			"All gamepads on slot 0 → 1 active player")
+		assert_eq(mgr.get_active_slots().size(), 1,
+			"Only slot 0 should be active")
+		assert_eq(mgr.get_active_slots()[0], 0,
+			"The sole active slot should be 0")
+		assert_false(mgr.get_is_coop(),
+			"Single active slot → not co-op")
