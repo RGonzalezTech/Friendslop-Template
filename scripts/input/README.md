@@ -78,7 +78,7 @@ sequenceDiagram
 
 - **MKB is permanently slot 0.** `bind_device(MKB, ...)` and `unbind_device(MKB)` are no-ops. Slot 0 is always active — it never emits `slot_deactivated`.
 - **Auto-unbind on rebind.** If gamepad 0 is on slot 2 and you `bind_device(0, 3)`, it unbinds from slot 2 first. A single device can never appear in two slots.
-- **Gamepad hotplug.** `Input.joy_connection_changed` auto-binds new gamepads to slot 0 (zero-setup default) and unbinds disconnected ones, emitting `device_unbound`.
+- **Gamepad detection.** Gamepads already connected at startup are enumerated in `_ready()` and auto-bound to slot 0. Subsequent hotplugs are handled via `Input.joy_connection_changed` (connect → bind to slot 0, disconnect → unbind). Both paths emit `device_bound` / `device_unbound`.
 - **Sparse slots are valid.** Active slots can be [0, 3] — no requirement for consecutive numbering.
 - **Unbound devices default to slot 0.** `get_player_for_device(unknown)` returns 0, so single-player code works without explicit binding.
 

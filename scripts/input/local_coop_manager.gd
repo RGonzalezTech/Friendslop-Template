@@ -55,6 +55,10 @@ func _ready() -> void:
 	# Gamepad hotplug: connect → auto-bind to slot 0, disconnect → unbind.
 	Input.joy_connection_changed.connect(_on_joy_connection_changed)
 
+	# Bind any gamepads already connected at startup (e.g. plugged in before launch).
+	for device in Input.get_connected_joypads():
+		bind_device(device, PRIMARY_SLOT)
+
 
 #endregion
 

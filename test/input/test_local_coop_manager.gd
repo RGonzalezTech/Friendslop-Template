@@ -346,3 +346,22 @@ class TestEdgeCases:
 		assert_eq(_manager.get_devices_for_player(0).size(), 3,
 			"Slot 0 should have MKB + 2 gamepads")
 		assert_true(_manager.has_available_gamepad())
+
+
+class TestInit:
+	extends GutTest
+
+	var _manager
+
+	func before_each() -> void:
+		_manager = LocalCoopManager.new()
+		add_child_autofree(_manager)
+
+	func test_ready_enumerates_connected_joypads() -> void:
+		# _ready() now scans Input.get_connected_joypads() for gamepads
+		# already plugged in at startup. In CI/test this returns [],
+		# so the loop is a no-op — but it must not crash.
+		assert_eq(_manager.get_active_players(), 1,
+			"Only MKB (slot 0) when no gamepads connected at startup")
+		assert_false(_manager.has_available_gamepad(),
+			"No gamepads means no available gamepad — the loop safely no-ops")
