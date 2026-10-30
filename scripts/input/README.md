@@ -46,3 +46,69 @@ sequenceDiagram
 
 - `action_router.gd`: The base class. Handles the heavy lifting of `InputMap` cloning and device filtering.
 - `game_action_router_2d.gd`: Adds high-level features like normalized look-direction sensing (Mouse absolute vs. Stick relative).
+
+## Local Co-op Device Mapping (`LocalCoopManager`)
+
+`LocalCoopManager` owns the real-time mapping from physical input devices to local player slots (seats). It tracks which gamepad belongs to which seat and emits signals so the UI can react. It does NOT trigger network effects — the lobby handshake for spawning or removing `LobbyPlayer` nodes is consumed via these signals in a separate layer.
+
+### API
+
+**Mapping**
+
+- `bind_device(device_id, slot)` — Assign a gamepad to a slot. Auto-unbinds from any previous slot. No-op for MKB.
+- `unbind_device(device_id)` — Release a gamepad. No-op for MKB or unknown devices.
+
+**Queries**
+
+- `get_player_for_device(device_id) → int` — Which slot this device maps to (0 if unbound).
+- `get_devices_for_player(slot) → Array[int]` — All device IDs bound to this slot.
+- `get_active_players() → int` — Count of distinct slots that have ≥1 device.
+- `get_is_coop() → bool` — True when more than one slot is active.
+- `get_active_slots() → Array[int]` — List of active slot indices (sparse — e.g. [0, 3]).
+- `has_available_gamepad() → bool` — True when slot 0 has MKB + ≥1 gamepad.
+
+**Signals**
+
+- `device_bound(device_id, slot)` — A device was bound to a slot.
+- `device_unbound(device_id, slot)` — A device was unbound (explicit call or disconnect).
+- `slot_activated(slot)` — A slot went from empty to having ≥1 device.
+- `slot_deactivated(slot)` — A slot went empty. Never fires for slot 0.
+
+### Constraints & Invariants
+
+- **MKB is permanently slot 0.** `bind_device(MKB, ...)` and `unbind_device(MKB)` are no-ops. Slot 0 is always active — it never emits `slot_deactivated`.
+- **Auto-unbind on rebind.** If gamepad 0 is on slot 2 and you `bind_device(0, 3)`, it unbinds from slot 2 first. A single device can never appear in two slots.
+- **Gamepad hotplug.** `Input.joy_connection_changed` auto-binds new gamepads to slot 0 (zero-setup default) and unbinds disconnected ones, emitting `device_unbound`.
+- **Sparse slots are valid.** Active slots can be [0, 3] — no requirement for consecutive numbering.
+- **Unbound devices default to slot 0.** `get_player_for_device(unknown)` returns 0, so single-player code works without explicit binding.
+
+### Flow
+
+```mermaid
+sequenceDiagram
+    participant HW as Hardware
+    participant LCM as LocalCoopManager
+    participant UI as UI / Game
+
+    Note over HW, LCM: Gamepad hotplug (auto)
+    HW->>LCM: joy_connection_changed(device, true)
+    LCM->>LCM: bind_device(device, 0)
+    LCM-->>UI: device_bound(device, 0)
+
+    Note over UI, LCM: User maps a seat
+    UI->>LCM: bind_device(gamepad, 2)
+    LCM->>LCM: unbind from slot 0, bind to slot 2
+    LCM-->>UI: device_bound(gamepad, 2)
+    LCM-->>UI: slot_activated(2)
+
+    Note over UI, LCM: User removes a seat
+    UI->>LCM: unbind_device(gamepad)
+    LCM-->>UI: device_unbound(gamepad, 2)
+    LCM-->>UI: slot_deactivated(2)
+
+    Note over HW, LCM: Gamepad disconnect
+    HW->>LCM: joy_connection_changed(device, false)
+    LCM->>LCM: unbind_device(device)
+    LCM-->>UI: device_unbound(device, 2)
+    LCM-->>UI: slot_deactivated(2)
+```

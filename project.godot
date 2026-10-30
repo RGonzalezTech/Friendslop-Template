@@ -20,6 +20,7 @@ config/icon="res://icon.svg"
 PeerManager="*res://scripts/multiplayer/network/peer_manager.gd"
 LobbyManager="*res://scripts/multiplayer/lobby/lobby_manager.gd"
 SceneManager="*res://scripts/core/scene_manager.gd"
+LocalCoopManager="*res://scripts/input/local_coop_manager.gd"
 
 [editor_plugins]
 
