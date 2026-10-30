@@ -3,15 +3,11 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cavojn74qp7ij"
-path="res://.godot/imported/Script.svg-34c66aae9c985e3e0470426acbbcda04.ctex"
-metadata={
-"vram_texture": false
-}
+valid=false
 
 [deps]
 
 source_file="res://addons/gut/images/Script.svg"
-dest_files=["res://.godot/imported/Script.svg-34c66aae9c985e3e0470426acbbcda04.ctex"]
 
 [params]
 

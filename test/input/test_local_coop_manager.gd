@@ -350,8 +350,6 @@ class TestEdgeCases:
 class TestInit:
 	extends GutTest
 
-	# ── helpers ──
-
 	func _build_manager(gamepad_ids: Array[int] = []) -> LocalCoopManagerCode:
 		var mock = double(InputProvider).new()
 		stub(mock, "get_connected_joypads").to_return(gamepad_ids)
@@ -359,14 +357,6 @@ class TestInit:
 		mgr.input_provider = mock
 		add_child_autofree(mgr)
 		return mgr
-
-	func _build_manager_with_mock(gamepad_ids: Array[int] = []) -> Dictionary:
-		var mock = double(InputProvider).new()
-		stub(mock, "get_connected_joypads").to_return(gamepad_ids)
-		var mgr = LocalCoopManagerCode.new()
-		mgr.input_provider = mock
-		add_child_autofree(mgr)
-		return {"manager": mgr, "mock": mock}
 
 	# ── startup enumeration ──
 
@@ -401,7 +391,6 @@ class TestInit:
 		assert_true(mgr.has_available_gamepad())
 
 	func test_ready_mkb_always_bound_to_slot_0() -> void:
-		# Regardless of how many gamepads are connected, MKB stays on slot 0
 		var mgr = _build_manager([0, 1, 2])
 		assert_eq(mgr.get_player_for_device(LocalCoopManagerCode.MKB), 0,
 			"MKB should be on slot 0 regardless of gamepad count")
@@ -409,7 +398,6 @@ class TestInit:
 			"MKB should appear in slot 0's device list")
 
 	func test_ready_gamepads_do_not_activate_other_slots() -> void:
-		# All startup gamepads bind to PRIMARY_SLOT (0) — never leak into slot 1+
 		var mgr = _build_manager([0, 1, 2])
 		assert_eq(mgr.get_active_players(), 1,
 			"All gamepads on slot 0 → 1 active player")
@@ -420,6 +408,18 @@ class TestInit:
 		assert_false(mgr.get_is_coop(),
 			"Single active slot → not co-op")
 
+
+class TestPlug:
+	extends GutTest
+
+	func _build_manager_with_mock(gamepad_ids: Array[int] = []) -> Dictionary:
+		var mock = double(InputProvider).new()
+		stub(mock, "get_connected_joypads").to_return(gamepad_ids)
+		var mgr = LocalCoopManagerCode.new()
+		mgr.input_provider = mock
+		add_child_autofree(mgr)
+		return {"manager": mgr, "mock": mock}
+
 	# ── hotplug signals ──
 
 	func test_hotplug_connect_binds_to_slot_0() -> void:
@@ -427,7 +427,6 @@ class TestInit:
 		var mgr: LocalCoopManagerCode = setup["manager"]
 		var mock = setup["mock"]
 
-		# Simulate gamepad 0 connecting after startup
 		mock.joy_connection_changed.emit(0, true)
 
 		assert_eq(mgr.get_player_for_device(0), 0,
@@ -438,7 +437,6 @@ class TestInit:
 			"MKB + gamepad 0 → available")
 
 	func test_hotplug_disconnect_unbinds_device() -> void:
-		# Startup: gamepad 0 is connected. Then it disconnects.
 		var setup = _build_manager_with_mock([0])
 		var mgr: LocalCoopManagerCode = setup["manager"]
 		var mock = setup["mock"]
@@ -457,7 +455,6 @@ class TestInit:
 			"No gamepad → no available gamepad")
 
 	func test_hotplug_after_startup_enumeration() -> void:
-		# Startup: pad 0 connected. Hotplug: pad 1 connects. Both on slot 0.
 		var setup = _build_manager_with_mock([0])
 		var mgr: LocalCoopManagerCode = setup["manager"]
 		var mock = setup["mock"]
@@ -493,24 +490,19 @@ class TestInit:
 		assert_signal_emitted_with_parameters(mgr.device_unbound, [0, 0])
 
 	func test_hotplug_reconnect_goes_to_primary_slot() -> void:
-		# User moved pad from slot 0 to slot 1, then pad disconnects and reconnects.
-		# Reconnect should rebind to PRIMARY_SLOT (0), not the old slot 1.
 		var setup = _build_manager_with_mock([0])
 		var mgr: LocalCoopManagerCode = setup["manager"]
 		var mock = setup["mock"]
 
-		# User moves pad 0 to slot 1 manually
 		mgr.bind_device(0, 1)
 		assert_eq(mgr.get_player_for_device(0), 1, "Pad manually moved to slot 1")
 
-		# Pad disconnects
 		mock.joy_connection_changed.emit(0, false)
 		assert_eq(mgr.get_player_for_device(0), 0,
 			"Disconnected pad defaults to slot 0")
 		assert_false(0 in mgr.get_devices_for_player(1),
 			"Slot 1 should be empty after disconnect")
 
-		# Pad reconnects
 		mock.joy_connection_changed.emit(0, true)
 		assert_eq(mgr.get_player_for_device(0), 0,
 			"Reconnected pad rebinds to PRIMARY_SLOT 0, not old slot")
