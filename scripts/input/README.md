@@ -46,6 +46,8 @@ sequenceDiagram
 
 - `action_router.gd`: The base class. Handles the heavy lifting of `InputMap` cloning and device filtering.
 - `game_action_router_2d.gd`: Adds high-level features like normalized look-direction sensing (Mouse absolute vs. Stick relative).
+- `local_coop_manager.gd`: Autoload that owns the device→seat mapping. Emits signals for UI binding. No network effects.
+- `input_provider.gd`: Thin wrapper around `Input.get_connected_joypads()` — enables DI mocking in tests via GUT `double()`.
 
 ## Local Co-op Device Mapping (`LocalCoopManager`)
 
