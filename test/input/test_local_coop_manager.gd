@@ -347,21 +347,31 @@ class TestEdgeCases:
 			"Slot 0 should have MKB + 2 gamepads")
 		assert_true(_manager.has_available_gamepad())
 
-
 class TestInit:
 	extends GutTest
+
+	const LocalCoopManager := preload("res://scripts/input/local_coop_manager.gd")
+	const InputProvider := preload("res://scripts/input/input_provider.gd")
 
 	var _manager
 
 	func before_each() -> void:
+		# Mock InputProvider so _ready() sees two gamepads already connected
+		var mock_input = double(InputProvider).new()
+		stub(mock_input, "get_connected_joypads").to_return([0, 1])
 		_manager = LocalCoopManager.new()
+		_manager.input_provider = mock_input
 		add_child_autofree(_manager)
 
-	func test_ready_enumerates_connected_joypads() -> void:
-		# _ready() now scans Input.get_connected_joypads() for gamepads
-		# already plugged in at startup. In CI/test this returns [],
-		# so the loop is a no-op — but it must not crash.
+	func test_ready_binds_startup_gamepads_to_slot_0() -> void:
+		# MKB + gamepad 0 + gamepad 1 → all on slot 0 → 3 devices, 1 active player
 		assert_eq(_manager.get_active_players(), 1,
-			"Only MKB (slot 0) when no gamepads connected at startup")
-		assert_false(_manager.has_available_gamepad(),
-			"No gamepads means no available gamepad — the loop safely no-ops")
+			"MKB + 2 gamepads all on primary slot = 1 active player")
+		assert_eq(_manager.get_devices_for_player(0).size(), 3,
+			"Slot 0 should have MKB + gamepad 0 + gamepad 1")
+		assert_true(0 in _manager.get_devices_for_player(0),
+			"Gamepad 0 should be in slot 0's device list")
+		assert_true(1 in _manager.get_devices_for_player(0),
+			"Gamepad 1 should be in slot 0's device list")
+		assert_true(_manager.has_available_gamepad(),
+			"Slot 0 has MKB + gamepads → available gamepad")
