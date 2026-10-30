@@ -46,6 +46,10 @@ var _device_to_slot: Dictionary = {}
 var _slot_to_devices: Dictionary = {}
 
 
+## Dependency injection seam for testing. Defaults to real Input.
+## Inject a GUT [code]double(InputProvider)[/code] to stub connected joypads.
+var input_provider: InputProvider = InputProvider.new()
+
 #region Lifecycle
 
 func _ready() -> void:
@@ -53,7 +57,11 @@ func _ready() -> void:
 	_bind_internal(MKB, PRIMARY_SLOT)
 
 	# Gamepad hotplug: connect → auto-bind to slot 0, disconnect → unbind.
-	Input.joy_connection_changed.connect(_on_joy_connection_changed)
+	input_provider.joy_connection_changed.connect(_on_joy_connection_changed)
+
+	# Bind any gamepads already connected at startup (e.g. plugged in before launch).
+	for device in input_provider.get_connected_joypads():
+		bind_device(device, PRIMARY_SLOT)
 
 
 #endregion
