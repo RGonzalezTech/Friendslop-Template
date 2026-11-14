@@ -1,7 +1,10 @@
 extends GutTest
 
 ## Unit tests for the device-mapping building blocks:
-## DeviceInputRouter, SeatSnapshot, and LocalSeatCoordinator.
+## DeviceInputRouter, SeatSnapshot, PlayerColumn, DeviceRow, and LocalSeatCoordinator.
+
+const COLUMN_SCENE := preload("res://scenes/ui/device_mapping/PlayerColumn.tscn")
+const ROW_SCENE := preload("res://scenes/ui/device_mapping/DeviceRow.tscn")
 
 
 class TestDeviceInputRouter:
@@ -205,6 +208,70 @@ class TestSeatSnapshot:
 			"Unplugged pad must not be ghost-rebound on restore")
 		assert_false(0 in _manager.get_devices_for_player(0),
 			"Unplugged pad must remain unbound")
+
+
+class TestPlayerColumn:
+	extends GutTest
+
+	func test_setup_sets_seat_and_p_label() -> void:
+		var column := COLUMN_SCENE.instantiate() as PlayerColumn
+		add_child_autofree(column)
+		column.setup(0)
+		assert_eq(column.seat_index, 0)
+		assert_eq(column.header_label.text, "P1", "Seat 0 should be labeled P1")
+
+		column.setup(2)
+		assert_eq(column.seat_index, 2)
+		assert_eq(column.header_label.text, "P3", "Seat 2 should be labeled P3")
+
+	func test_occupancy_and_ids() -> void:
+		var column := COLUMN_SCENE.instantiate() as PlayerColumn
+		add_child_autofree(column)
+		assert_false(column.is_occupied())
+
+		var row := ROW_SCENE.instantiate() as DeviceRow
+		column.add_device_row(row)
+		row.setup(-1, false)
+
+		var custom_row := Control.new()
+		custom_row.set_meta("device_id", 2)
+		column.add_device_row(custom_row)
+
+		assert_true(column.is_occupied())
+		assert_eq(column.get_device_ids(), [-1, 2])
+		assert_not_null(column.get_device_row(-1))
+		assert_eq(column.get_device_row(2), custom_row)
+		assert_null(column.get_device_row(0))
+
+	func test_show_and_clear_rejection() -> void:
+		var column := COLUMN_SCENE.instantiate() as PlayerColumn
+		add_child_autofree(column)
+		assert_false(column.rejection_label.visible)
+		column.show_rejection("lobby full")
+		assert_true(column.rejection_label.visible)
+		assert_string_contains(column.rejection_label.text, "lobby full")
+		column.clear_rejection()
+		assert_false(column.rejection_label.visible)
+
+
+class TestDeviceRow:
+	extends GutTest
+
+	func test_setup_keyboard_identity() -> void:
+		var row := ROW_SCENE.instantiate() as DeviceRow
+		add_child_autofree(row)
+		row.setup(-1, true)
+		assert_eq(row.device_id, -1)
+		assert_false(row.movable, "MKB should never be movable")
+		assert_string_contains(row.name_label.text, "Keyboard")
+
+	func test_setup_gamepad_identity() -> void:
+		var row := ROW_SCENE.instantiate() as DeviceRow
+		add_child_autofree(row)
+		row.setup(0, true)
+		assert_eq(row.device_id, 0)
+		assert_true(row.movable)
+		assert_string_contains(row.name_label.text, "Gamepad 0")
 
 
 class TestLocalSeatCoordinator:
