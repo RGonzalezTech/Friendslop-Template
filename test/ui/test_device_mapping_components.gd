@@ -1,7 +1,7 @@
 extends GutTest
 
 ## Unit tests for the device-mapping building blocks:
-## DeviceInputRouter and SeatSnapshot.
+## DeviceInputRouter, SeatSnapshot, and LocalSeatCoordinator.
 
 
 class TestDeviceInputRouter:
@@ -205,3 +205,137 @@ class TestSeatSnapshot:
 			"Unplugged pad must not be ghost-rebound on restore")
 		assert_false(0 in _manager.get_devices_for_player(0),
 			"Unplugged pad must remain unbound")
+
+
+class TestLocalSeatCoordinator:
+	extends GutTest
+
+	var _coop: LocalCoopManagerCode
+	var _lobby_container: Node
+	var _mock_lobby: LobbyManagerCode
+	var _coordinator: LocalSeatCoordinator
+
+	func before_each() -> void:
+		var input_mock = double(InputProvider).new()
+		stub(input_mock, "get_connected_joypads").to_return([])
+		_coop = LocalCoopManagerCode.new()
+		_coop.input_provider = input_mock
+		add_child_autofree(_coop)
+
+		_lobby_container = Node.new()
+		add_child_autofree(_lobby_container)
+		var mp := SceneMultiplayer.new()
+		get_tree().set_multiplayer(mp, _lobby_container.get_path())
+
+		_mock_lobby = double(LobbyManagerCode).new()
+		_lobby_container.add_child(_mock_lobby)
+		var initial_host := Node.new()
+		autofree(initial_host)
+		stub(_mock_lobby, "get_local_players").to_return({0: initial_host})
+
+		_coordinator = LocalSeatCoordinator.new(_coop, _mock_lobby)
+
+	func after_each() -> void:
+		if is_instance_valid(_lobby_container) and is_inside_tree():
+			get_tree().set_multiplayer(null, _lobby_container.get_path())
+
+	func test_compact_seats_removes_gaps_preserving_order() -> void:
+		_coop.bind_device(0, 3)
+		_coop.bind_device(1, 5)
+
+		var compacted := _coordinator.compact_seats()
+
+		assert_eq(compacted, [0, 1, 2])
+		assert_eq(_coop.get_player_for_device(0), 1)
+		assert_eq(_coop.get_player_for_device(1), 2)
+
+	func test_commit_adds_compacted_seats_and_emits_committed() -> void:
+		_coop.bind_device(0, 3)
+		var existing_host := Node.new()
+		autofree(existing_host)
+		stub(_mock_lobby, "get_local_players").to_return({0: existing_host})
+
+		watch_signals(_coordinator)
+		_coordinator.commit()
+
+		assert_eq(_coop.get_player_for_device(0), 1, "Seat 3 should compact to seat 1")
+		assert_called(_mock_lobby.add_local_player.bind(1))
+		assert_not_called(_mock_lobby.remove_local_player)
+		assert_signal_not_emitted(_coordinator.committed, "Wait for player_joined before committed")
+
+		# Unrelated peer joining should not resolve pending add
+		_mock_lobby.player_joined.emit(99, 1)
+		assert_signal_not_emitted(_coordinator.committed)
+
+		# Local peer (id 1 in default OfflineMultiplayerPeer) resolves add
+		_mock_lobby.player_joined.emit(1, 1)
+		assert_signal_emitted(_coordinator.committed)
+
+	func test_commit_removes_dropped_seats_without_adding() -> void:
+		var dummy0 := Node.new()
+		var dummy1 := Node.new()
+		var dummy2 := Node.new()
+		autofree(dummy0)
+		autofree(dummy1)
+		autofree(dummy2)
+		stub(_mock_lobby, "get_local_players").to_return({0: dummy0, 1: dummy1, 2: dummy2})
+		_coop.bind_device(0, 1)
+
+		watch_signals(_coordinator)
+		_coordinator.commit()
+
+		assert_called(_mock_lobby.remove_local_player.bind(2))
+		assert_not_called(_mock_lobby.add_local_player)
+		assert_signal_emitted(_coordinator.committed)
+
+	func test_commit_no_diff_emits_committed_immediately() -> void:
+		var dummy0 := Node.new()
+		var dummy1 := Node.new()
+		autofree(dummy0)
+		autofree(dummy1)
+		stub(_mock_lobby, "get_local_players").to_return({0: dummy0, 1: dummy1})
+		_coop.bind_device(0, 1)
+
+		watch_signals(_coordinator)
+		_coordinator.commit()
+
+		assert_not_called(_mock_lobby.add_local_player)
+		assert_not_called(_mock_lobby.remove_local_player)
+		assert_signal_emitted(_coordinator.committed)
+
+	func test_commit_rejection_reverts_only_rejected_seat() -> void:
+		_coop.bind_device(0, 1)
+		_coop.bind_device(1, 3)  # compacts to 2
+		var dummy0 := Node.new()
+		autofree(dummy0)
+		stub(_mock_lobby, "get_local_players").to_return({0: dummy0})
+
+		watch_signals(_coordinator)
+		_coordinator.commit()
+
+		assert_called(_mock_lobby.add_local_player.bind(1))
+		assert_called(_mock_lobby.add_local_player.bind(2))
+
+		_mock_lobby.player_joined.emit(1, 1)
+		_mock_lobby.reject_add_player.emit(2, "lobby full")
+
+		assert_eq(_coop.get_player_for_device(0), 1, "Accepted seat 1 should stay")
+		assert_eq(_coop.get_player_for_device(1), 0, "Rejected seat 2 should revert to seat 0")
+		assert_signal_emitted_with_parameters(_coordinator.seat_rejected, [2, "lobby full"])
+		assert_signal_not_emitted(_coordinator.committed)
+
+	func test_commit_rejection_moves_all_pads_on_rejected_seat_to_zero() -> void:
+		_coop.bind_device(0, 1)
+		_coop.bind_device(1, 1)
+		var dummy0 := Node.new()
+		autofree(dummy0)
+		stub(_mock_lobby, "get_local_players").to_return({0: dummy0})
+
+		watch_signals(_coordinator)
+		_coordinator.commit()
+		_mock_lobby.reject_add_player.emit(1, "lobby full")
+
+		assert_eq(_coop.get_player_for_device(0), 0)
+		assert_eq(_coop.get_player_for_device(1), 0)
+		assert_signal_emitted_with_parameters(_coordinator.seat_rejected, [1, "lobby full"])
+		assert_signal_not_emitted(_coordinator.committed)
