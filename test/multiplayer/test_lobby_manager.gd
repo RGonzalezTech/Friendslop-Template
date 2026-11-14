@@ -593,6 +593,32 @@ func test_reject_add_player_emits_signal():
 
 #endregion
 
+#region 40-device-mapping: Public add/remove_local_player wrappers
+
+func test_add_local_player_host_self_add():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+
+	_lobby_manager.add_local_player(1)
+	await wait_process_frames(2)
+
+	var guest = _lobby_manager.get_player(host_id, 1)
+	assert_not_null(guest, "Host self-add should spawn local guest via rpc_id(1)")
+	assert_eq(guest.peer_id, host_id)
+	assert_eq(guest.local_player_id, 1)
+
+func test_remove_local_player_host_self_remove():
+	var host_id = _lobby_manager.multiplayer.get_unique_id()
+	_add_player(host_id, 0)
+	_add_player(host_id, 1)
+
+	_lobby_manager.remove_local_player(1)
+	await wait_process_frames(2)
+
+	assert_null(_lobby_manager.get_player(host_id, 1), "Host self-remove should remove local guest")
+
+#endregion
+
 func _add_player(peer_id: int, local_player_id: int) -> LobbyPlayer:
 	var params := [peer_id, local_player_id]
 	var lobby_player = double(LobbyPlayer).new()
@@ -600,3 +626,70 @@ func _add_player(peer_id: int, local_player_id: int) -> LobbyPlayer:
 	lobby_player.local_player_id = local_player_id
 	_lobby_manager._lobby_players_container.add_child(lobby_player)
 	return lobby_player
+
+
+class TestLobbyManagerClientServer:
+	extends BaseNetworkGutTest
+
+	var _server_lobby: LobbyManagerCode
+	var _client_lobby: LobbyManagerCode
+	var _mock_server_sm: SceneManagerCode
+	var _mock_client_sm: SceneManagerCode
+	var _client_peer_id: int = -1
+
+	func before_each() -> void:
+		setup_server()
+		_mock_server_sm = double(SceneManagerCode).new()
+		_server_lobby = LobbyManagerCode.new()
+		_server_lobby.name = "NetLobbyManager"
+		_server_node.add_child(_server_lobby)
+		_server_lobby.scene_manager = _mock_server_sm
+		_server_lobby._add_player(1, 0)
+
+		setup_client()
+		_mock_client_sm = double(SceneManagerCode).new()
+		_client_lobby = LobbyManagerCode.new()
+		_client_lobby.name = "NetLobbyManager"
+		_client_node.add_child(_client_lobby)
+		_client_lobby.scene_manager = _mock_client_sm
+
+		await wait_seconds(0.2)
+		_client_peer_id = _client_lobby.multiplayer.get_unique_id()
+
+	func after_each() -> void:
+		teardown_client()
+		teardown_server()
+		if is_instance_valid(_client_lobby):
+			_client_lobby.free()
+		if is_instance_valid(_server_lobby):
+			_server_lobby.free()
+		if is_instance_valid(_mock_client_sm):
+			_mock_client_sm.free()
+		if is_instance_valid(_mock_server_sm):
+			_mock_server_sm.free()
+
+	func test_client_add_and_remove_local_player() -> void:
+		assert_not_null(_server_lobby.get_player(_client_peer_id, 0), "Client primary player should exist on server")
+		assert_not_null(_client_lobby.get_local_player(0), "Client primary player should replicate to client")
+
+		_client_lobby.add_local_player(1)
+		await wait_seconds(0.2)
+
+		assert_not_null(_server_lobby.get_player(_client_peer_id, 1), "Guest should spawn on server")
+		assert_not_null(_client_lobby.get_local_player(1), "Guest should replicate to client")
+
+		_client_lobby.remove_local_player(1)
+		await wait_seconds(0.2)
+
+		assert_null(_server_lobby.get_player(_client_peer_id, 1), "Guest should be removed from server")
+		assert_null(_client_lobby.get_local_player(1), "Guest removal should replicate to client")
+
+	func test_client_add_local_player_rejected_when_full() -> void:
+		_server_lobby.current_lobby.max_players = _server_lobby.get_all_players().size()
+		watch_signals(_client_lobby)
+
+		_client_lobby.add_local_player(1)
+		await wait_seconds(0.2)
+
+		assert_signal_emitted_with_parameters(_client_lobby.reject_add_player, [1, "lobby full"])
+		assert_null(_server_lobby.get_player(_client_peer_id, 1), "Guest should not spawn when full")

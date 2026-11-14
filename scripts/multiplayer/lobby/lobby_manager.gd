@@ -232,6 +232,14 @@ func update_all_local_player_status(new_status: LobbyPlayer.Status) -> void:
 	for local_player_id in local_players.keys():
 		update_player_status(new_status, local_player_id)
 
+## Requests the server to add a local split-screen player for [param local_player_id].
+func add_local_player(local_player_id: int) -> void:
+	_request_add_player.rpc_id(1, local_player_id)
+
+## Requests the server to remove the local split-screen player for [param local_player_id].
+func remove_local_player(local_player_id: int) -> void:
+	_request_remove_player.rpc_id(1, local_player_id)
+
 #endregion
 
 #region Networking Signals
