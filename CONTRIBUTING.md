@@ -27,12 +27,11 @@ If you have questions about how to use the template or need clarification on the
 
 1. **Fork & Branch:** Fork the repository and create a new branch for your feature or bugfix.
   - Use a descriptive branch name (e.g., `username/feature-name` or `fix/issue-description`).
-2. **Design Doc:** For anything bigger than a bugfix, write `docs/<feature-name>.md` from the [template](docs/design-doc-template.md) first — pieces, a sequence diagram, numbered decisions, open questions. Settle the open questions (in the issue or PR) before writing code.
-3. **Make Changes:** Implement your changes in your new branch.
+2. **Make Changes:** Implement your changes in your new branch.
   - The code is tested via [GUT](https://gut.readthedocs.io/en/v9.5.0/). Make sure you haven't broken any existing tests.
   - If you add a new feature, add a new test for it — test first (RED → GREEN → refactor).
   - Update the relevant `README.md` if your changes modify existing behavior or project structure.
-4. **Pull Request:** Submit a pull request to the `main` branch.
+3. **Pull Request:** Submit a pull request to the `main` branch.
   - This will trigger GitHub Actions to run unit tests automatically.
 
 ## 🤖 AI Agents
@@ -64,7 +63,6 @@ When submitting a pull request, please make sure that you:
 1. Describe your changes thoroughly and, if possible, include images or screenshots.
 2. Link to relevant issues (e.g., `closes #123`).
 3. Sync your branch with `main` before submitting to minimize merge conflicts.
-4. Use commit messages like `Component: what changed (#issue)`, and keep each `.gd.uid` file in the same commit as its script.
 
 ## 🎨 Code Style / Architecture
 

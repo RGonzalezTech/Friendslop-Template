@@ -2,16 +2,6 @@
 
 How AI coding agents (Claude Code, Codex, Hermes, etc.) work in this repo. Humans: see [CONTRIBUTING.md](CONTRIBUTING.md) — same rules, less shouting.
 
-## Before Any Code Change
-
-1. **Design doc first.** Write `docs/<feature-name>.md` from the [template](docs/design-doc-template.md):
-   - Pieces table: what exists today + what's new (`Piece | Job | Knows about`)
-   - Mermaid sequence diagram of the proposed flow
-   - Numbered architectural decisions — each with a recommendation, rationale, and open/settled
-   - Open-questions checklist (`- [ ]`, each with a **Leaning**)
-2. **Confirm the open questions** with the user before implementing.
-3. **File-level plan.** List every file created vs modified, and for each whether it's a new `.gd`, a new `.tscn`, or an edit to an existing scene. Wait for approval before building.
-
 ## Documentation Conventions
 
 - Every subsystem folder gets a `README.md` mirroring the code tree. Root README links to each one
@@ -23,7 +13,6 @@ How AI coding agents (Claude Code, Codex, Hermes, etc.) work in this repo. Human
   - `->>` calls/RPCs, `-->>` signals/returns. Labels use real method/signal names from the code
   - Show the happy path + the branches that change behavior (reject, disconnect, server vs client). Skip asserts, logging, helpers
 - **Verify every name** in a diagram or doc against the code, and render it (`npx -p @mermaid-js/mermaid-cli mmdc -i x.mmd -o x.svg`) before committing
-- **READMEs describe what exists on this branch.** Forward-looking API belongs in a `docs/` design doc or an Open Questions checkbox. If a README names a method that isn't in the code, ask whether the README or the code is wrong — don't implement it
 - Cross-system doc comments can lie too ("X calls this"). Read both sides before wiring anything
 - Backtick code fences (`ClassName`) — never Godot doc syntax (`[ClassName]`, `[method foo]`), which renders as literal brackets on GitHub
 - Document API with purpose, not just signature. List invariants explicitly
